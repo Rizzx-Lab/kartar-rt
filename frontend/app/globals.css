@@ -1,0 +1,393 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+@layer base {
+  *,
+  *::before,
+  *::after {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    margin: 0;
+    padding: 0;
+  }
+
+  body {
+    @apply bg-white text-gray-800 font-sans antialiased;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+  }
+}
+
+/* Custom utilities if needed */
+@layer utilities {
+  .scale-103 {
+    transform: scale(1.03);
+  }
+}
+
+/* ==================== TESTIMONIALS SCROLL ANIMATIONS ==================== */
+@keyframes scroll-up {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-50%);
+  }
+}
+
+@keyframes scroll-up-slow {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-50%);
+  }
+}
+
+@keyframes scroll-up-medium {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-50%);
+  }
+}
+
+.animate-scroll-up {
+  animation: scroll-up 40s linear infinite;
+}
+
+.animate-scroll-up-slow {
+  animation: scroll-up-slow 50s linear infinite;
+}
+
+.animate-scroll-up-medium {
+  animation: scroll-up-medium 45s linear infinite;
+}
+
+/* Gallery scroll animations - controlled by JS props */
+.animate-scroll-gallery-up {
+  animation: scroll-gallery-up 30s linear infinite;
+}
+
+.animate-scroll-gallery-up:hover {
+  animation-play-state: paused;
+}
+
+.animate-scroll-gallery-up-slow {
+  animation: scroll-gallery-up 40s linear infinite;
+}
+
+.animate-scroll-gallery-up-slow:hover {
+  animation-play-state: paused;
+}
+
+.animate-scroll-gallery-up-medium {
+  animation: scroll-gallery-up 35s linear infinite;
+}
+
+.animate-scroll-gallery-up-medium:hover {
+  animation-play-state: paused;
+}
+
+/* No animation class - for when auto-scroll is disabled */
+.no-scroll-animation {
+  animation: none !important;
+}
+
+/* Pause animation on hover */
+.animate-scroll-up:hover,
+.animate-scroll-up-slow:hover,
+.animate-scroll-up-medium:hover {
+  animation-play-state: paused;
+}
+
+/* ==================== HERO ANIMATIONS ==================== */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pulse-glow {
+  0%, 100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1.05);
+  }
+}
+
+@keyframes bounce-indicator {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(8px);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.8s ease-out forwards;
+  animation-delay: 0.2s;
+  opacity: 0;
+}
+
+.animate-fade-in-left {
+  animation: fadeInLeft 0.8s ease-out forwards;
+  animation-delay: 0.2s;
+  opacity: 0;
+}
+
+.animate-fade-in-scale {
+  animation: fadeInScale 0.8s ease-out forwards;
+  animation-delay: 0.3s;
+  opacity: 0;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 3s ease-in-out infinite;
+}
+
+.animate-bounce-indicator {
+  animation: bounce-indicator 1.5s ease-in-out infinite;
+}
+
+/* ==================== FADE IN SCROLL ANIMATIONS ==================== */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeInRight {
+  from {
+    opacity: 0;
+    transform: translateX(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Default fade-in classes */
+.fade-in {
+  opacity: 0;
+  animation: fadeIn 0.6s ease-out forwards;
+}
+
+.fade-in-left {
+  opacity: 0;
+  animation: fadeInLeft 0.6s ease-out forwards;
+}
+
+.fade-in-right {
+  opacity: 0;
+  animation: fadeInRight 0.6s ease-out forwards;
+}
+
+.fade-in-scale {
+  opacity: 0;
+  animation: fadeInScale 0.5s ease-out forwards;
+}
+
+/* Staggered animations via inline styles */
+[fade-in] {
+  opacity: 0;
+  animation: fadeIn 0.5s ease-out forwards;
+}
+
+/* ==================== SIMPLE CSS ANIMATIONS ==================== */
+/* These are lightweight CSS-only animations - no JS required */
+
+/* Fade in animation for hero sections */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in-up {
+  animation: fadeInUp 0.6s ease-out forwards;
+}
+
+/* ==================== FOOTER ANIMATIONS ==================== */
+@keyframes footer-glow-1 {
+  0%, 100% {
+    opacity: 0.5;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.1);
+  }
+}
+
+@keyframes footer-glow-2 {
+  0%, 100% {
+    opacity: 0.3;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: scale(1.15);
+  }
+}
+
+@keyframes logo-glow {
+  0%, 100% {
+    box-shadow: 0 0 10px rgba(201,168,76,0.3);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(201,168,76,0.5);
+  }
+}
+
+@keyframes footer-pulse {
+  0%, 100% {
+    opacity: 0.5;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.footer-glow-1 {
+  animation: footer-glow-1 10s ease-in-out infinite;
+}
+
+.footer-glow-2 {
+  animation: footer-glow-2 12s ease-in-out infinite;
+  animation-delay: 3s;
+}
+
+.logo-glow {
+  animation: logo-glow 3s ease-in-out infinite;
+}
+
+.footer-pulse {
+  animation: footer-pulse 2s ease-in-out infinite;
+}
+
+/* ==================== GALLERY SCROLL ANIMATIONS ==================== */
+@keyframes scroll-gallery-up {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-50%);
+  }
+}
+
+@keyframes scroll-gallery-up-slow {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-50%);
+  }
+}
+
+@keyframes scroll-gallery-up-medium {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-50%);
+  }
+}
+
+.animate-scroll-gallery-up {
+  animation: scroll-gallery-up 30s linear infinite;
+}
+
+.animate-scroll-gallery-up:hover {
+  animation-play-state: paused;
+}
+
+.animate-scroll-gallery-up-slow {
+  animation: scroll-gallery-up-slow 40s linear infinite;
+}
+
+.animate-scroll-gallery-up-slow:hover {
+  animation-play-state: paused;
+}
+
+.animate-scroll-gallery-up-medium {
+  animation: scroll-gallery-up-medium 35s linear infinite;
+}
+
+.animate-scroll-gallery-up-medium:hover {
+  animation-play-state: paused;
+}

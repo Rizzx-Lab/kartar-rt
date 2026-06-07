@@ -1,0 +1,382 @@
+'use client';
+
+import React, { useState, useRef, useMemo } from 'react';
+import { cn } from '@/lib/utils';
+import { useInView, motion, AnimatePresence } from 'framer-motion';
+import { X, ZoomIn, Play } from 'lucide-react';
+
+interface Photo {
+  id: number;
+  src: string;
+  alt: string;
+  caption?: string | null;
+  aspect_ratio?: number;
+  gallery?: {
+    id: number;
+    title: string;
+  };
+  created_at?: string;
+}
+
+interface ImageGalleryProps {
+  photos: Photo[];
+  title?: string;
+  subtitle?: string;
+  autoScroll?: boolean;
+  scrollSpeed?: number;
+}
+
+export function ImageGallery({ photos, title, subtitle, autoScroll = true, scrollSpeed = 30 }: ImageGalleryProps) {
+  // Only enable auto scroll if photos >= 6
+  const shouldAutoScroll = autoScroll && photos.length >= 6;
+
+  return (
+    <section className="py-12 md:py-14">
+      {/* Header */}
+      {(title || subtitle) && (
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5 }}
+          className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mb-8"
+        >
+          <div className="text-center">
+            {title && (
+              <motion.h2
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.1 }}
+                className="text-xl md:text-2xl font-bold text-navy-800"
+              >
+                {title}
+              </motion.h2>
+            )}
+            {subtitle && (
+              <motion.p
+                initial={{ opacity: 0, y: 10 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: 0.2 }}
+                className="mt-2 text-gray-600 text-sm md:text-base max-w-2xl mx-auto"
+              >
+                {subtitle}
+              </motion.p>
+            )}
+            <motion.div
+              initial={{ scaleX: 0 }}
+              whileInView={{ scaleX: 1 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.3, duration: 0.5 }}
+              className="w-12 h-0.5 bg-gradient-to-r from-gold-500 to-gold-300 mx-auto mt-4 rounded origin-center"
+            />
+          </div>
+        </motion.div>
+      )}
+
+      {/* Animated Gallery Grid - 3 columns like testimonials */}
+      <AnimatedGalleryGrid photos={photos} scrollSpeed={scrollSpeed} shouldAutoScroll={shouldAutoScroll} />
+    </section>
+  );
+}
+
+// Animated Gallery Grid - Similar to testimonials scrolling
+function AnimatedGalleryGrid({ photos, scrollSpeed = 30, shouldAutoScroll = true }: { photos: Photo[]; scrollSpeed?: number; shouldAutoScroll?: boolean }) {
+  const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
+  const [showLightbox, setShowLightbox] = useState(false);
+  const [isHovered, setIsHovered] = useState(false);
+
+  // Split photos into 3 columns
+  const column1 = photos.filter((_, i) => i % 3 === 0);
+  const column2 = photos.filter((_, i) => i % 3 === 1);
+  const column3 = photos.filter((_, i) => i % 3 === 2);
+
+  const handlePhotoClick = (photo: Photo) => {
+    setSelectedPhoto(photo);
+    setShowLightbox(true);
+  };
+
+  return (
+    <>
+      <motion.div
+        initial={{ opacity: 0 }}
+        whileInView={{ opacity: 1 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.6 }}
+        className="flex justify-center gap-4 px-4 sm:px-6 lg:px-8"
+        style={{ maxHeight: '600px', WebkitMaskImage: 'linear-gradient(to bottom, transparent, black 10%, black 90%, transparent)', maskImage: 'linear-gradient(to bottom, transparent, black 10%, black 90%, transparent)' }}
+      >
+        {/* Column 1 */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+          className="w-full sm:w-72 md:w-80 flex-shrink-0 overflow-hidden"
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+        >
+          <div
+            className={`flex flex-col gap-4 ${shouldAutoScroll ? 'animate-scroll-gallery-up' : ''}`}
+          >
+            {[...column1, ...column1].map((photo, idx) => (
+              <AnimatedGalleryItem
+                key={`col1-${photo.id}-${idx}`}
+                photo={photo}
+                onClick={() => handlePhotoClick(photo)}
+              />
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Column 2 */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="hidden md:block w-full sm:w-72 md:w-80 flex-shrink-0 overflow-hidden"
+        >
+          <div
+            className={`flex flex-col gap-4 ${shouldAutoScroll ? 'animate-scroll-gallery-up-slow' : ''}`}
+          >
+            {[...column2, ...column2].map((photo, idx) => (
+              <AnimatedGalleryItem
+                key={`col2-${photo.id}-${idx}`}
+                photo={photo}
+                onClick={() => handlePhotoClick(photo)}
+              />
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Column 3 */}
+        <motion.div
+          initial={{ opacity: 0, y: 30 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+          className="hidden lg:block w-full sm:w-72 md:w-80 flex-shrink-0 overflow-hidden"
+        >
+          <div
+            className={`flex flex-col gap-4 ${shouldAutoScroll ? 'animate-scroll-gallery-up-medium' : ''}`}
+          >
+            {[...column3, ...column3].map((photo, idx) => (
+              <AnimatedGalleryItem
+                key={`col3-${photo.id}-${idx}`}
+                photo={photo}
+                onClick={() => handlePhotoClick(photo)}
+                medium
+              />
+            ))}
+          </div>
+        </motion.div>
+      </motion.div>
+
+      {/* Lightbox Modal */}
+      <AnimatePresence>
+        {showLightbox && selectedPhoto && (
+          <Lightbox
+            photo={selectedPhoto}
+            onClose={() => setShowLightbox(false)}
+          />
+        )}
+      </AnimatePresence>
+
+          </>
+  );
+}
+
+// Individual animated gallery item
+interface AnimatedGalleryItemProps {
+  photo: Photo;
+  onClick: () => void;
+  slow?: boolean;
+  medium?: boolean;
+}
+
+function AnimatedGalleryItem({ photo, onClick, slow, medium }: AnimatedGalleryItemProps) {
+  const [isLoading, setIsLoading] = useState(true);
+  const [isHovered, setIsHovered] = useState(false);
+
+  // Consistent aspect ratio based on index pattern
+  const aspectRatio = photo.aspect_ratio || (Math.random() > 0.5 ? 0.75 : 1);
+
+  return (
+    <motion.div
+      whileHover={{ scale: 1.02, zIndex: 10 }}
+      transition={{ duration: 0.3 }}
+      onClick={onClick}
+      onMouseEnter={() => setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      className="relative overflow-hidden rounded-xl cursor-pointer group"
+      style={{ aspectRatio: aspectRatio === 0.75 ? '3/4' : '1/1' }}
+    >
+      {/* Image with fade in */}
+      <motion.img
+        initial={{ opacity: 0 }}
+        animate={{ opacity: isLoading ? 0 : 1 }}
+        transition={{ duration: 0.5 }}
+        src={photo.src}
+        alt={photo.alt}
+        className="w-full h-full object-cover"
+        onLoad={() => setIsLoading(false)}
+        loading="lazy"
+      />
+
+      {/* Loading skeleton */}
+      {isLoading && (
+        <div className="absolute inset-0 bg-gray-200 animate-pulse" />
+      )}
+
+      {/* Hover overlay with zoom icon */}
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: isHovered ? 1 : 0 }}
+        transition={{ duration: 0.2 }}
+        className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-transparent flex items-center justify-center"
+      >
+        <motion.div
+          initial={{ scale: 0.8 }}
+          animate={{ scale: isHovered ? 1 : 0.8 }}
+          transition={{ duration: 0.2 }}
+          className="w-12 h-12 bg-white/20 backdrop-blur-sm rounded-full flex items-center justify-center"
+        >
+          <ZoomIn className="w-6 h-6 text-white" />
+        </motion.div>
+      </motion.div>
+
+      {/* Caption at bottom */}
+      {(photo.caption || photo.gallery) && (
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: isHovered ? 1 : 0.8, y: 0 }}
+          transition={{ duration: 0.2 }}
+          className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/80 to-transparent p-3"
+        >
+          {photo.gallery && (
+            <span className="inline-block px-2 py-0.5 text-xs font-medium bg-white/90 text-navy-800 rounded-full mb-1">
+              {photo.gallery.title}
+            </span>
+          )}
+          {photo.caption && (
+            <p className="text-xs text-white/90 line-clamp-1">
+              {photo.caption}
+            </p>
+          )}
+        </motion.div>
+      )}
+    </motion.div>
+  );
+}
+
+interface LightboxProps {
+  photo: Photo;
+  onClose: () => void;
+}
+
+function Lightbox({ photo, onClose }: LightboxProps) {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/95"
+      onClick={onClose}
+    >
+      {/* Close Button */}
+      <motion.button
+        initial={{ scale: 0, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ delay: 0.2, type: 'spring', stiffness: 300 }}
+        onClick={onClose}
+        className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white z-10"
+      >
+        <X className="w-6 h-6" />
+      </motion.button>
+
+      {/* Image */}
+      <motion.img
+        initial={{ scale: 0.8, opacity: 0 }}
+        animate={{ scale: 1, opacity: 1 }}
+        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
+        src={photo.src}
+        alt={photo.alt}
+        className="max-w-full max-h-[90vh] object-contain"
+        onClick={(e) => e.stopPropagation()}
+      />
+
+      {/* Caption */}
+      {photo.caption && (
+        <motion.div
+          initial={{ y: 20, opacity: 0 }}
+          animate={{ y: 0, opacity: 1 }}
+          transition={{ delay: 0.3 }}
+          className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/80 to-transparent p-6"
+        >
+          <p className="text-white text-center text-lg">{photo.caption}</p>
+          {photo.gallery && (
+            <p className="text-white/70 text-center text-sm mt-1">{photo.gallery.title}</p>
+          )}
+        </motion.div>
+      )}
+    </motion.div>
+  );
+}
+
+// Loading Skeleton
+export function ImageGallerySkeleton() {
+  return (
+    <section className="py-12 md:py-14">
+      <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.5 }}
+        className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 mb-8"
+      >
+        <div className="text-center">
+          <motion.div
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            transition={{ delay: 0.1 }}
+            className="h-7 w-48 bg-gray-200 rounded mx-auto mb-3"
+          />
+          <motion.div
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            transition={{ delay: 0.2 }}
+            className="h-4 w-72 bg-gray-200 rounded mx-auto mb-4"
+          />
+          <motion.div
+            initial={{ scaleX: 0 }}
+            animate={{ scaleX: 1 }}
+            transition={{ delay: 0.3 }}
+            className="h-0.5 w-12 bg-gray-200 rounded mx-auto"
+          />
+        </div>
+      </motion.div>
+
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 0.2 }}
+        className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8"
+      >
+        <div className="flex justify-center gap-4 flex-wrap">
+          {Array.from({ length: 12 }).map((_, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: i * 0.05 }}
+              className="bg-gray-200 animate-pulse rounded-lg"
+              style={{ width: '150px', height: '150px' }}
+            />
+          ))}
+        </div>
+      </motion.div>
+    </section>
+  );
+}

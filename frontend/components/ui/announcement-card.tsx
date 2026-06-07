@@ -1,0 +1,131 @@
+'use client';
+
+import { useState } from 'react';
+import { motion } from 'framer-motion';
+import { ChevronDown, Pin, Calendar } from 'lucide-react';
+
+interface Announcement {
+  id: number;
+  title: string;
+  slug: string;
+  excerpt?: string | null;
+  content?: string | null;
+  is_pinned: boolean;
+  published_at: string;
+}
+
+interface AnnouncementCardProps {
+  announcement: Announcement;
+  variant: 'pinned' | 'regular';
+}
+
+const formatDate = (dateStr: string) => {
+  const date = new Date(dateStr);
+  return {
+    day: date.toLocaleDateString('id-ID', { day: 'numeric' }),
+    month: date.toLocaleDateString('id-ID', { month: 'long' }),
+  };
+};
+
+const formatFullDate = (dateStr: string) => {
+  return new Date(dateStr).toLocaleDateString('id-ID', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+    year: 'numeric',
+  });
+};
+
+export function AnnouncementCard({ announcement, variant }: AnnouncementCardProps) {
+  const [isExpanded, setIsExpanded] = useState(false);
+  const date = formatDate(announcement.published_at);
+  const isPinned = variant === 'pinned';
+
+  return (
+    <motion.article
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+    >
+      <motion.div
+        layout
+        className={`rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden ${
+          isPinned ? 'bg-white border-l-4 border-gold-500' : 'bg-white'
+        }`}
+      >
+        {/* Clickable Header */}
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="w-full p-5 text-left"
+        >
+          <div className="flex items-center gap-4">
+            {/* Date Badge */}
+            <div className={`rounded-xl flex flex-col items-center justify-center flex-shrink-0 ${
+              isPinned ? 'w-14 h-14 bg-gold-500/10' : 'w-12 h-12 bg-navy-100'
+            }`}>
+              <span className={`font-bold leading-none ${isPinned ? 'text-2xl text-gold-600' : 'text-lg text-navy-800'}`}>
+                {date.day}
+              </span>
+              <span className={`text-xs font-medium ${isPinned ? 'text-gold-600' : 'text-navy-600 uppercase'}`}>
+                {date.month}
+              </span>
+            </div>
+
+            {/* Content */}
+            <div className="flex-1 min-w-0">
+              {isPinned && (
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="inline-flex items-center gap-1 px-2 py-1 bg-gold-500/10 text-gold-600 text-xs font-semibold rounded-full">
+                    <Pin className="w-3 h-3" />
+                    Disematkan
+                  </span>
+                </div>
+              )}
+              <h3 className={`font-semibold text-navy-900 line-clamp-1 mb-1 ${isPinned ? 'text-lg' : ''}`}>
+                {announcement.title}
+              </h3>
+              {announcement.excerpt && (
+                <p className="text-gray-500 text-sm line-clamp-1">
+                  {announcement.excerpt}
+                </p>
+              )}
+            </div>
+
+            {/* Expand Icon */}
+            <motion.div
+              animate={{ rotate: isExpanded ? 180 : 0 }}
+              transition={{ duration: 0.2 }}
+              className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
+                isExpanded ? 'bg-gold-500' : 'bg-gray-100'
+              }`}
+            >
+              <ChevronDown className={`w-4 h-4 ${isExpanded ? 'text-navy-900' : 'text-gray-400'}`} />
+            </motion.div>
+          </div>
+        </button>
+
+        {/* Expanded Content */}
+        <motion.div
+          initial={{ height: 0, opacity: 0 }}
+          animate={{ height: isExpanded ? 'auto' : 0, opacity: isExpanded ? 1 : 0 }}
+          transition={{ duration: 0.3 }}
+          className="overflow-hidden"
+        >
+          <div className="px-5 pb-5 border-t border-gray-100 pt-4">
+            <p className="text-xs text-gray-400 flex items-center gap-1 mb-3">
+              <Calendar className="w-3 h-3" />
+              {formatFullDate(announcement.published_at)}
+            </p>
+            {announcement.content ? (
+              <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed">
+                <p className="whitespace-pre-wrap">{announcement.content}</p>
+              </div>
+            ) : (
+              <p className="text-gray-500 italic text-sm">Tidak ada detail pengumuman.</p>
+            )}
+          </div>
+        </motion.div>
+      </motion.div>
+    </motion.article>
+  );
+}
