@@ -46,6 +46,11 @@ export default function AdminSettingsPage() {
     if (response.success) {
       setSaved(true);
       setTimeout(() => setSaved(false), 3000);
+      // Fetch ulang data dari server untuk sinkronisasi
+      const freshData = await getSettings();
+      if (freshData.success && freshData.data) {
+        setSettings(freshData.data);
+      }
     }
   };
 
@@ -244,14 +249,28 @@ export default function AdminSettingsPage() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => setSettings({ ...settings, show_testimonials: !settings.show_testimonials })}
+                  onClick={async () => {
+                    // Konversi ke boolean dengan aman
+                    const currentValue = settings.show_testimonials === true;
+                    const newValue = !currentValue;
+
+                    // Update state dulu (optimistic update)
+                    setSettings({ ...settings, show_testimonials: newValue });
+
+                    // Auto-save ke backend
+                    const response = await updateSettings({ show_testimonials: newValue });
+                    if (response.success) {
+                      setSaved(true);
+                      setTimeout(() => setSaved(false), 3000);
+                    }
+                  }}
                   className={`relative w-12 h-6 rounded-full transition-colors ${
-                    settings.show_testimonials !== false ? 'bg-gold-500' : 'bg-gray-300'
+                    settings.show_testimonials === true ? 'bg-gold-500' : 'bg-gray-300'
                   }`}
                 >
                   <span
                     className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-transform ${
-                      settings.show_testimonials !== false ? 'translate-x-7' : 'translate-x-1'
+                      settings.show_testimonials === true ? 'translate-x-7' : 'translate-x-1'
                     }`}
                   />
                 </button>
@@ -265,7 +284,21 @@ export default function AdminSettingsPage() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => setSettings({ ...settings, gallery_auto_scroll: !settings.gallery_auto_scroll })}
+                  onClick={async () => {
+                    // Konversi ke boolean dengan aman
+                    const currentValue = settings.gallery_auto_scroll !== false;
+                    const newValue = !currentValue;
+
+                    // Update state dulu (optimistic update)
+                    setSettings({ ...settings, gallery_auto_scroll: newValue });
+
+                    // Auto-save ke backend
+                    const response = await updateSettings({ gallery_auto_scroll: newValue });
+                    if (response.success) {
+                      setSaved(true);
+                      setTimeout(() => setSaved(false), 3000);
+                    }
+                  }}
                   className={`relative w-12 h-6 rounded-full transition-colors ${
                     settings.gallery_auto_scroll !== false ? 'bg-gold-500' : 'bg-gray-300'
                   }`}

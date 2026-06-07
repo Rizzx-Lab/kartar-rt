@@ -27,16 +27,16 @@ import {
 import { cn } from '@/lib/utils';
 import { getNotifications } from '@/lib/admin-api';
 
-// Navigation Items
-const navItems = [
+// Navigation Items - filtered by role
+const allNavItems = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/programs', label: 'Program', icon: Calendar },
   { href: '/admin/organization', label: 'Struktur Organisasi', icon: Briefcase },
   { href: '/admin/announcements', label: 'Pengumuman', icon: Megaphone },
   { href: '/admin/galleries', label: 'Galeri', icon: Image },
   { href: '/admin/contacts', label: 'Kontak', icon: Mail },
-  { href: '/admin/users', label: 'Pengguna', icon: Users },
-  { href: '/admin/settings', label: 'Pengaturan', icon: Settings },
+  { href: '/admin/users', label: 'Pengguna', icon: Users, superAdminOnly: true },
+  { href: '/admin/settings', label: 'Pengaturan', icon: Settings, superAdminOnly: true },
 ];
 
 // Collapsible Section Component
@@ -95,6 +95,14 @@ export default function AdminLayout({
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
+
+  // Filter nav items based on user role (superAdmin sees all, admin sees only non-superAdmin items)
+  const navItems = allNavItems.filter(item => {
+    if (item.superAdminOnly) {
+      return user?.role === 'superadmin' || user?.role === 'super_admin';
+    }
+    return true;
+  });
 
   // Fetch real notifications
   useEffect(() => {
@@ -193,6 +201,7 @@ export default function AdminLayout({
               <SidebarContent
                 user={user}
                 pathname={pathname}
+                navItems={navItems}
                 onClose={() => setIsMobileOpen(false)}
                 onLogout={() => setShowLogoutConfirm(true)}
               />
@@ -206,6 +215,7 @@ export default function AdminLayout({
         <SidebarContent
           user={user}
           pathname={pathname}
+          navItems={navItems}
           onLogout={() => setShowLogoutConfirm(true)}
         />
       </aside>
@@ -389,11 +399,13 @@ function SidebarContent({
   pathname,
   onClose,
   onLogout,
+  navItems,
 }: {
   user: any;
   pathname: string;
   onClose?: () => void;
   onLogout: () => void;
+  navItems: typeof allNavItems;
 }) {
   return (
     <div className="flex flex-col h-full">

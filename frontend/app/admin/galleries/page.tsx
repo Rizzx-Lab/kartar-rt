@@ -54,9 +54,36 @@ export default function AdminGalleriesPage() {
   const [uploadingPhotos, setUploadingPhotos] = useState(false);
   const itemsPerPage = 6;
 
+  // Load galleries on mount
   useEffect(() => {
     fetchGalleries();
   }, []);
+
+  // Auto scroll & scroll lock when modals open
+  useEffect(() => {
+    if (showModal || showViewModal) {
+      // Lock body scroll
+      document.body.style.overflow = 'hidden';
+      // Scroll to top of page
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+      // Unlock body scroll
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [showModal, showViewModal]);
+
+  // Reset scroll when viewing gallery changes
+  useEffect(() => {
+    if (showViewModal) {
+      const modalContent = document.getElementById('gallery-modal-content');
+      if (modalContent) {
+        modalContent.scrollTop = 0;
+      }
+    }
+  }, [showViewModal, viewingGallery?.id]);
 
   const fetchGalleries = async () => {
     setIsLoading(true);
@@ -248,7 +275,7 @@ export default function AdminGalleriesPage() {
                   </div>
                 )}
                 <span className="absolute top-3 right-3 bg-white/90 px-2 py-1 text-xs text-gray-700 rounded">
-                  {gallery.photos?.length || 0} foto
+                  {(gallery as any).photos_count || 0} foto
                 </span>
                 {gallery.is_published && (
                   <span className="absolute top-3 left-3 bg-green-500 text-white px-2 py-1 text-xs rounded">
@@ -408,7 +435,7 @@ export default function AdminGalleriesPage() {
                 </svg>
               </button>
             </div>
-            <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+            <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]" id="gallery-modal-content">
               {viewingGallery.description && (
                 <p className="text-gray-600 mb-4">{viewingGallery.description}</p>
               )}

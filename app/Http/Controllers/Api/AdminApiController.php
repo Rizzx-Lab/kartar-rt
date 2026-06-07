@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\{Program, ProgramSession, Announcement, Gallery, GalleryPhoto, Contact, User, OrganizationMember, SiteSetting};
 use Illuminate\Http\{Request, JsonResponse};
-use Illuminate\Support\Facades\{Storage, File};
+use Illuminate\Support\Facades\{Storage, File, Cache};
 
 class AdminApiController extends Controller
 {
@@ -246,7 +246,32 @@ class AdminApiController extends Controller
     // ==========================================
     public function galleries(): JsonResponse
     {
-        $galleries = Gallery::with('photos')->orderBy('created_at', 'desc')->get();
+        // Load galleries with first photo only (for cover thumbnail)
+        // This is much faster than loading all photos for all galleries
+        $galleries = Gallery::with(['photos' => function($query) {
+                $query->select('id', 'gallery_id', 'file_path', 'caption', 'order')
+                      ->orderBy('order')
+                      ->limit(1);
+            }])
+            ->orderBy('created_at', 'desc')
+            ->get()
+            ->map(function($gallery) {
+                return [
+                    'id' => $gallery->id,
+                    'title' => $gallery->title,
+                    'description' => $gallery->description,
+                    'is_published' => $gallery->is_published,
+                    'event_date' => $gallery->event_date,
+                    'created_at' => $gallery->created_at,
+                    'photos_count' => $gallery->photos->count(),
+                    // Only include first photo for cover, not all photos
+                    'photos' => $gallery->photos->take(1)->map(fn($p) => [
+                        'id' => $p->id,
+                        'file_path' => asset('storage/' . $p->file_path),
+                        'caption' => $p->caption,
+                    ])->values()->all(),
+                ];
+            });
 
         return response()->json(['success' => true, 'data' => $galleries]);
     }
@@ -533,7 +558,26 @@ class AdminApiController extends Controller
     // ==========================================
     public function settings(): JsonResponse
     {
-        $settings = SiteSetting::pluck('value', 'key');
+        $settings = SiteSetting::pluck('value', 'key')->toArray();
+
+        // Convert string values back to proper types
+        if (isset($settings['show_testimonials'])) {
+            $settings['show_testimonials'] = $settings['show_testimonials'] === '1' || $settings['show_testimonials'] === 'true';
+        } else {
+            $settings['show_testimonials'] = true; // Default true
+        }
+
+        if (isset($settings['gallery_auto_scroll'])) {
+            $settings['gallery_auto_scroll'] = $settings['gallery_auto_scroll'] === '1' || $settings['gallery_auto_scroll'] === 'true';
+        } else {
+            $settings['gallery_auto_scroll'] = true; // Default true
+        }
+
+        if (isset($settings['gallery_scroll_speed'])) {
+            $settings['gallery_scroll_speed'] = (int) $settings['gallery_scroll_speed'];
+        } else {
+            $settings['gallery_scroll_speed'] = 30; // Default 30 seconds
+        }
 
         return response()->json(['success' => true, 'data' => $settings]);
     }
@@ -551,9 +595,20 @@ class AdminApiController extends Controller
             'facebook' => 'nullable|string|max:100',
             'maps_embed' => 'nullable|string',
             'about_text' => 'nullable|string',
+            'show_testimonials' => 'nullable|boolean',
+            'gallery_auto_scroll' => 'nullable|boolean',
+            'gallery_scroll_speed' => 'nullable|integer|min:10|max:60',
         ]);
 
+        // Clear related caches
+        Cache::forget('api:settings');
+        Cache::forget('api:contact-info');
+        Cache::forget('api:about');
+
         foreach ($settings as $key => $value) {
+            // Convert boolean to string for storage
+            $value = is_bool($value) ? ($value ? '1' : '0') : $value;
+
             SiteSetting::updateOrCreate(
                 ['key' => $key],
                 ['value' => $value, 'type' => 'text']

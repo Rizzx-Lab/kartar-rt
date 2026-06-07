@@ -12,14 +12,17 @@ async function adminFetch<T>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<ApiResponse<T>> {
-  const token = localStorage.getItem('admin_token');
+  const token = typeof window !== 'undefined' ? localStorage.getItem('admin_token') : null;
 
   // Jika body adalah FormData, JANGAN set Content-Type
   const isFormData = options.body instanceof FormData;
-  const headers: Record<string, string> = {
+  const headers: HeadersInit = {
     'Accept': 'application/json',
-    'Authorization': `Bearer ${token}`,
   };
+
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
 
   if (!isFormData) {
     headers['Content-Type'] = 'application/json';
@@ -28,15 +31,17 @@ async function adminFetch<T>(
   try {
     const response = await fetch(`${API_URL}${endpoint}`, {
       ...options,
-      headers: { ...headers, ...options.headers } as HeadersInit,
+      headers: { ...headers, ...(options.headers || {}) },
     });
 
     const data = await response.json();
 
     if (response.status === 401) {
-      localStorage.removeItem('admin_token');
-      localStorage.removeItem('admin_user');
-      window.location.href = '/admin/login';
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('admin_token');
+        localStorage.removeItem('admin_user');
+        window.location.href = '/admin/login';
+      }
       return { success: false, message: 'Sesi berakhir. Silakan login ulang.' };
     }
 
@@ -277,9 +282,19 @@ export async function getSettings() {
 }
 
 export async function updateSettings(data: any) {
+  // Convert boolean to string for Laravel
+  const formattedData: Record<string, any> = {};
+  for (const [key, value] of Object.entries(data)) {
+    if (typeof value === 'boolean') {
+      formattedData[key] = value ? '1' : '0';
+    } else {
+      formattedData[key] = value;
+    }
+  }
+
   return adminFetch<any>('/admin/settings', {
     method: 'POST',
-    body: JSON.stringify(data),
+    body: JSON.stringify(formattedData),
   });
 }
 

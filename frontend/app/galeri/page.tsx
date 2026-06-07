@@ -60,8 +60,8 @@ async function getGalleryData() {
 export default async function GalleryPage() {
   const { recentPhotos, archives, settings } = await getGalleryData();
 
-  // Auto scroll logic: only if photos >= 6 and setting is enabled
-  const shouldAutoScroll = settings.gallery_auto_scroll && recentPhotos.length >= 6;
+  // Auto scroll logic: only if photos >= 3 and setting is enabled
+  const shouldAutoScroll = settings.gallery_auto_scroll && recentPhotos.length >= 3;
 
   return (
     <GalleryTabs

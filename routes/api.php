@@ -91,9 +91,11 @@ Route::prefix('v1')->name('api.')->group(function () {
         Route::put('/admin/organization/{id}', [AdminApiController::class, 'organizationMemberUpdate'])->name('admin.organization.update');
         Route::delete('/admin/organization/{id}', [AdminApiController::class, 'organizationMemberDestroy'])->name('admin.organization.destroy');
 
-        // Settings
-        Route::get('/admin/settings', [AdminApiController::class, 'settings'])->name('admin.settings');
-        Route::post('/admin/settings', [AdminApiController::class, 'settingsUpdate'])->name('admin.settings.update');
+        // Settings (Super Admin only)
+        Route::middleware(['superadmin'])->group(function () {
+            Route::get('/admin/settings', [AdminApiController::class, 'settings'])->name('admin.settings');
+            Route::post('/admin/settings', [AdminApiController::class, 'settingsUpdate'])->name('admin.settings.update');
+        });
     });
 
 });

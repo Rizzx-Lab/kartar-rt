@@ -1,9 +1,8 @@
 'use client';
 
-import React, { useState, useRef, useMemo } from 'react';
-import { cn } from '@/lib/utils';
-import { useInView, motion, AnimatePresence } from 'framer-motion';
-import { X, ZoomIn, Play } from 'lucide-react';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { X, ZoomIn } from 'lucide-react';
 
 interface Photo {
   id: number;
@@ -27,8 +26,8 @@ interface ImageGalleryProps {
 }
 
 export function ImageGallery({ photos, title, subtitle, autoScroll = true, scrollSpeed = 30 }: ImageGalleryProps) {
-  // Only enable auto scroll if photos >= 6
-  const shouldAutoScroll = autoScroll && photos.length >= 6;
+  // Only enable auto scroll if photos >= 3
+  const shouldAutoScroll = autoScroll && photos.length >= 3;
 
   return (
     <section className="py-12 md:py-14">
@@ -136,7 +135,7 @@ function AnimatedGalleryGrid({ photos, scrollSpeed = 30, shouldAutoScroll = true
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: 0.2 }}
-          className="hidden md:block w-full sm:w-72 md:w-80 flex-shrink-0 overflow-hidden"
+          className="w-full sm:w-72 md:w-80 flex-shrink-0 overflow-hidden"
         >
           <div
             className={`flex flex-col gap-4 ${shouldAutoScroll ? 'animate-scroll-gallery-up-slow' : ''}`}
@@ -157,7 +156,7 @@ function AnimatedGalleryGrid({ photos, scrollSpeed = 30, shouldAutoScroll = true
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: 0.3 }}
-          className="hidden lg:block w-full sm:w-72 md:w-80 flex-shrink-0 overflow-hidden"
+          className="w-full sm:w-72 md:w-80 flex-shrink-0 overflow-hidden"
         >
           <div
             className={`flex flex-col gap-4 ${shouldAutoScroll ? 'animate-scroll-gallery-up-medium' : ''}`}
@@ -183,8 +182,7 @@ function AnimatedGalleryGrid({ photos, scrollSpeed = 30, shouldAutoScroll = true
           />
         )}
       </AnimatePresence>
-
-          </>
+    </>
   );
 }
 
