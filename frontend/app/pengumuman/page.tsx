@@ -37,7 +37,7 @@ export default async function AnnouncementsPage() {
         <div className="absolute top-10 left-20 w-72 h-72 bg-gold-500/20 rounded-full blur-3xl animate-pulse" />
         <div className="absolute bottom-0 right-20 w-96 h-96 bg-navy-500/30 rounded-full blur-3xl" />
 
-        <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative">
           <div className="max-w-2xl">
             <span className="inline-flex items-center gap-2 text-gold-500 text-sm font-semibold mb-4 uppercase tracking-wider">
               <span className="w-8 h-px bg-gold-500" />

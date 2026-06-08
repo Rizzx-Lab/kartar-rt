@@ -80,8 +80,6 @@ export default async function AboutPage() {
 
   // Default members if API fails
   const members = data?.members || [];
-  const keyMembers = members.slice(0, 3);
-  const otherMembers = members.slice(3);
 
   return (
     <div className="bg-white">
@@ -105,7 +103,7 @@ export default async function AboutPage() {
                     <Users className="w-6 h-6 text-navy-900" />
                   </div>
                   <div>
-                    <div className="text-2xl font-bold text-navy-900">{members.length}+</div>
+                    <div className="text-2xl font-bold text-navy-900">12+</div>
                     <div className="text-xs text-gray-500">Anggota</div>
                   </div>
                 </div>
@@ -204,59 +202,31 @@ export default async function AboutPage() {
           ) : (
             <>
               {/* Key Members */}
-              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-6 max-w-4xl mx-auto mb-12">
-                {keyMembers.map((member) => (
-                  <div key={member.id} className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-all text-center">
-                    <div className="relative w-24 mx-auto mb-4">
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 max-w-6xl mx-auto">
+                {members.map((member) => (
+                  <div key={member.id} className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-all text-center group">
+                    <div className="relative w-28 mx-auto mb-4">
                       {member.photo ? (
                         <img
                           src={getImageUrl(member.photo)!}
                           alt={member.name}
-                          className="w-24 h-24 mx-auto rounded-full object-cover"
+                          className="w-28 h-28 mx-auto rounded-full object-cover border-3 border-gray-100 group-hover:border-gold-500 transition-colors"
                         />
                       ) : (
-                        <div className="w-24 h-24 mx-auto bg-gray-200 rounded-full flex items-center justify-center">
-                          <span className="text-2xl font-bold text-gray-400">{member.name[0]}</span>
+                        <div className="w-28 h-28 mx-auto bg-gradient-to-br from-gray-200 to-gray-300 rounded-full flex items-center justify-center border-3 border-gray-100 group-hover:border-gold-500 transition-colors">
+                          <span className="text-3xl font-bold text-gray-500">{member.name[0]}</span>
                         </div>
                       )}
-                      <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-gold-500 text-navy-900 text-xs font-bold px-2 py-0.5 rounded-full">
+                      <span className="absolute -bottom-1 left-1/2 -translate-x-1/2 bg-gold-500 text-navy-900 text-xs font-bold px-3 py-1 rounded-full shadow-sm">
                         #{member.order}
                       </span>
                     </div>
-                    <h3 className="font-bold text-navy-800 mb-1">{member.name}</h3>
+                    <h3 className="font-bold text-navy-800 text-base mb-1 group-hover:text-gold-600 transition-colors">{member.name}</h3>
                     <span className="text-gold-600 text-sm font-medium">{member.position}</span>
                   </div>
                 ))}
               </div>
 
-              {/* Other Members */}
-              {otherMembers.length > 0 && (
-                <div>
-                  <div className="flex items-center justify-center gap-4 mb-6">
-                    <div className="h-px w-16 bg-gray-200" />
-                    <span className="text-gray-400 text-sm font-medium">Pengurus Lainnya</span>
-                    <div className="h-px w-16 bg-gray-200" />
-                  </div>
-                  <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4 max-w-3xl mx-auto">
-                    {otherMembers.map((member) => (
-                      <div key={member.id} className="bg-gray-50 rounded-xl p-4 text-center hover:bg-gray-100 transition-colors cursor-pointer">
-                        {member.photo ? (
-                          <img
-                            src={getImageUrl(member.photo)!}
-                            alt={member.name}
-                            className="w-14 h-14 mx-auto rounded-full object-cover"                          />
-                        ) : (
-                          <div className="w-14 h-14 mx-auto bg-gray-200 rounded-full flex items-center justify-center">
-                            <span className="text-lg font-bold text-gray-400">{member.name[0]}</span>
-                          </div>
-                        )}
-                        <h4 className="text-sm font-semibold text-navy-800 mt-2 truncate">{member.name}</h4>
-                        <p className="text-xs text-gold-600 truncate">{member.position}</p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              )}
             </>
           )}
         </div>

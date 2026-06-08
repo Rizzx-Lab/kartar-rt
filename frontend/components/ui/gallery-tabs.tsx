@@ -40,14 +40,24 @@ export default function GalleryTabs({ recentPhotos, archives, autoScroll = true,
   return (
     <>
       {/* Hero Section */}
-      <section className="relative py-16 md:py-20 bg-navy-800">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="text-3xl md:text-4xl font-bold text-white mb-3">
-            Galeri Kegiatan
-          </h1>
-          <p className="text-base md:text-lg text-gray-300 max-w-2xl mx-auto">
-            Dokumentasi foto seluruh kegiatan Karang Taruna Armalo Eluf
-          </p>
+      <section className="bg-navy-900 pt-24 pb-14 md:pt-28 md:pb-20 relative overflow-hidden">
+        {/* Animated Background */}
+        <div className="absolute top-0 right-0 w-96 h-96 bg-gold-500/20 rounded-full blur-3xl animate-pulse" />
+        <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-navy-500/30 rounded-full blur-3xl" />
+
+        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 relative">
+          <div className="max-w-2xl">
+            <span className="inline-flex items-center gap-2 text-gold-500 text-sm font-semibold mb-4 uppercase tracking-wider">
+              <span className="w-8 h-px bg-gold-500" />
+              Dokumentasi
+            </span>
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-4">
+              Galeri Kegiatan
+            </h1>
+            <p className="text-gray-300 text-base md:text-lg leading-relaxed">
+              Dokumentasi foto seluruh kegiatan Karang Taruna Armalo Eluf
+            </p>
+          </div>
         </div>
       </section>
 

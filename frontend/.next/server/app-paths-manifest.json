@@ -1,8 +1,9 @@
 {
-  "/_not-found/page": "app/_not-found/page.js",
   "/tentang-kami/page": "app/tentang-kami/page.js",
-  "/api/revalidate/route": "app/api/revalidate/route.js",
-  "/admin/settings/page": "app/admin/settings/page.js",
-  "/admin/login/page": "app/admin/login/page.js",
-  "/admin/dashboard/page": "app/admin/dashboard/page.js"
+  "/galeri/page": "app/galeri/page.js",
+  "/kegiatan/page": "app/kegiatan/page.js",
+  "/pengumuman/page": "app/pengumuman/page.js",
+  "/admin/dashboard/page": "app/admin/dashboard/page.js",
+  "/admin/organization/page": "app/admin/organization/page.js",
+  "/admin/settings/page": "app/admin/settings/page.js"
 }

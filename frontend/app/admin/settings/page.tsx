@@ -112,7 +112,7 @@ export default function AdminSettingsPage() {
         // Fetch ulang data dari server untuk sinkronisasi
         const freshData = await getSettings();
         if (freshData.success && freshData.data) {
-          setSettings(freshData.data);
+          setSettings({ ...getInitialSettings(), ...freshData.data });
           if (freshData.data.about_image) {
             setAboutImagePreview(freshData.data.about_image);
           }
