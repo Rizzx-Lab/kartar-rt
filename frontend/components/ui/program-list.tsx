@@ -2,7 +2,6 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { motion } from 'framer-motion';
 import { Calendar, Repeat, Clock, ArrowRight, Sparkles } from 'lucide-react';
 
 interface Program {
@@ -121,9 +120,7 @@ export function ProgramList({ programs }: ProgramListProps) {
                             className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
                           />
                         ) : (
-                          <div className="w-full h-full bg-gradient-to-br from-navy-100 to-navy-200 flex items-center justify-center">
-                            <Icon className="w-12 h-12 text-navy-400" />
-                          </div>
+                          <div className="w-full h-full bg-gradient-to-br from-navy-100 to-navy-200" />
                         )}
 
                         {/* Hover Overlay */}

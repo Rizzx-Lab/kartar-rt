@@ -173,34 +173,75 @@ export default async function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {programs.slice(0, 6).map((program) => (
-              <div
-                key={program.id}
-                className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 group"
-              >
-                {getImageUrl(program.cover_image) && (
-                  <div className="relative h-44 overflow-hidden">
-                    <img
-                      src={getImageUrl(program.cover_image)!}
-                      alt={program.name}
-                      className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
-                    />
-                    <div className="absolute inset-0 bg-linear-to-t from-navy-900/60 to-transparent" />
+            {programs.slice(0, 6).map((program) => {
+              const hasImage = getImageUrl(program.cover_image);
+              const freqConfig = {
+                monthly: { label: 'Bulanan', bgColor: 'bg-emerald-500', textColor: 'text-emerald-600' },
+                yearly: { label: 'Tahunan', bgColor: 'bg-blue-500', textColor: 'text-blue-600' },
+                once: { label: 'Sekali', bgColor: 'bg-purple-500', textColor: 'text-purple-600' },
+                irregular: { label: 'Tidak Rutin', bgColor: 'bg-amber-500', textColor: 'text-amber-600' },
+              };
+              const freq = freqConfig[program.frequency] || freqConfig.irregular;
+
+              return (
+                <div key={program.id} className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 h-full flex flex-col group">
+                  {/* Image Area */}
+                  <div className="relative h-40 overflow-hidden">
+                    {hasImage ? (
+                      <>
+                        <img
+                          src={getImageUrl(program.cover_image)!}
+                          alt={program.name}
+                          className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                        />
+                      </>
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-navy-100 to-navy-200 flex items-center justify-center">
+                        <div className="w-12 h-12 rounded-full bg-navy-300/50 flex items-center justify-center">
+                          <div className="w-6 h-6 rounded-full bg-navy-400" />
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Hover Overlay */}
+                    <div className="absolute inset-0 bg-navy-900/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <span className="text-white font-semibold text-sm flex items-center gap-2">
+                        Lihat Detail
+                        <ArrowRight className="w-4 h-4" />
+                      </span>
+                    </div>
                   </div>
-                )}
-                <div className="p-5">
-                  <span className={`inline-block px-2 py-1 text-xs font-medium rounded-full mb-2 ${program.frequency === 'monthly' ? 'bg-green-100 text-green-700' : program.frequency === 'yearly' ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-700'}`}>
-                    {program.frequency === 'monthly' ? 'Bulanan' : program.frequency === 'yearly' ? 'Tahunan' : program.frequency === 'once' ? 'Sekali' : 'Tidak rutin'}
-                  </span>
-                  <h3 className="text-base font-semibold text-navy-800 mb-2 group-hover:text-amber-600 transition-colors">{program.name}</h3>
-                  <p className="text-gray-600 text-sm line-clamp-3">{program.description}</p>
-                  <div className="inline-flex items-center gap-2 text-amber-600 hover:text-amber-700 text-sm font-medium mt-3">
-                    Lihat detail
-                    <ArrowRight className="w-4 h-4" />
+
+                  {/* Content */}
+                  <div className="p-5 flex-1 flex flex-col -mt-2">
+                    {/* Frequency Badge */}
+                    <div className={`inline-flex items-center gap-1.5 ${freq.bgColor} px-3 py-1 rounded-full self-start mb-3`}>
+                      <span className="text-white text-xs font-semibold">{freq.label}</span>
+                    </div>
+
+                    <h3 className="font-bold text-navy-900 text-base mb-2 group-hover:text-gold-600 transition-colors">
+                      {program.name}
+                    </h3>
+                    {program.description && (
+                      <p className="text-gray-500 text-sm leading-relaxed line-clamp-2 flex-1">
+                        {program.description}
+                      </p>
+                    )}
+
+                    {/* Bottom meta */}
+                    <div className="mt-4 pt-3 border-t border-gray-100 flex items-center justify-between">
+                      <span className={`text-xs font-medium ${freq.textColor}`}>
+                        #{program.order}
+                      </span>
+                      <span className="text-gold-600 text-sm font-medium flex items-center gap-1 group-hover:gap-2 transition-all">
+                        Eksplorasi
+                        <ArrowRight className="w-3.5 h-3.5" />
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <div className="text-center mt-10">
@@ -265,20 +306,20 @@ export default async function HomePage() {
       {settings.show_testimonials && <TestimonialsSection />}
 
       {/* CTA Section */}
-      <section className="py-14 bg-white">
+      <section className="py-12 bg-navy-900">
         <div className="max-w-4xl mx-auto px-6 text-center">
-          <h2 className="text-2xl md:text-3xl font-bold text-navy-800 mb-4">
-            Tertarik dengan Kegiatan Kami?
+          <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
+            Tertarik untuk Bergabung?
           </h2>
-          <p className="text-gray-600 mb-6">
+          <p className="text-gray-400 mb-6">
             Jangan ragu untuk menghubungi kami. Kami selalu terbuka untuk kolaborasi dan partisipasi warga.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/kontak" className="inline-flex items-center gap-2 px-6 py-3 bg-amber-500 hover:bg-amber-600 text-navy-900 font-semibold rounded-lg transition-all shadow-lg shadow-amber-500/30">
+            <Link href="/kontak" className="inline-flex items-center gap-2 px-6 py-2.5 bg-gold-500 hover:bg-gold-600 text-navy-900 font-semibold rounded-full transition-colors shadow-lg shadow-gold-500/30">
               Hubungi Kami
             </Link>
-            <Link href="/galeri" className="inline-flex items-center gap-2 px-6 py-3 border-2 border-navy-800 text-navy-800 hover:bg-navy-800 hover:text-white font-semibold rounded-lg transition-all">
-              Lihat Galeri
+            <Link href="/kegiatan" className="inline-flex items-center gap-2 px-6 py-2.5 border border-white/30 hover:border-white/60 text-white rounded-full transition-colors">
+              Lihat Kegiatan
             </Link>
           </div>
         </div>

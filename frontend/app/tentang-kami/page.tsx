@@ -1,7 +1,7 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
 import { getAbout } from '@/lib/api';
-import { Users } from 'lucide-react';
+import { Users, Handshake, Target, Heart, Lightbulb } from 'lucide-react';
 
 // ISR - Revalidate every 60 seconds
 export const revalidate = 60;
@@ -129,14 +129,14 @@ export default async function AboutPage() {
 
           <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
             {[
-              { icon: '🤝', title: 'Gotong Royong', desc: 'Bersama kami kuat, sendiri kami terbatas' },
-              { icon: '🎯', title: 'Tujuan Bersama', desc: 'Satu visi untuk lingkungan yang lebih baik' },
-              { icon: '❤️', title: 'Kepedulian', desc: 'Saling menghargai dan membantu' },
-              { icon: '💡', title: 'Kreativitas', desc: 'Terus berinovasi memberi manfaat' },
+              { icon: Handshake, title: 'Gotong Royong', desc: 'Bersama kami kuat, sendiri kami terbatas' },
+              { icon: Target, title: 'Tujuan Bersama', desc: 'Satu visi untuk lingkungan yang lebih baik' },
+              { icon: Heart, title: 'Kepedulian', desc: 'Saling menghargai dan membantu' },
+              { icon: Lightbulb, title: 'Kreativitas', desc: 'Terus berinovasi memberi manfaat' },
             ].map((value) => (
               <div key={value.title} className="bg-white p-5 rounded-xl shadow-sm hover:shadow-md transition-shadow cursor-pointer group">
                 <div className="w-11 h-11 bg-navy-900 rounded-lg flex items-center justify-center mb-4 group-hover:bg-gold-500 transition-colors">
-                  <span className="text-lg group-hover:text-navy-900 transition-colors">{value.icon}</span>
+                  <value.icon className="w-5 h-5 text-white group-hover:text-navy-900 transition-colors" />
                 </div>
                 <h3 className="font-semibold text-navy-900 mb-1">{value.title}</h3>
                 <p className="text-sm text-gray-500">{value.desc}</p>
