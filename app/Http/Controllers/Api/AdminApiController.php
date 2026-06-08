@@ -579,6 +579,13 @@ class AdminApiController extends Controller
             $settings['gallery_scroll_speed'] = 30; // Default 30 seconds
         }
 
+        // Return full URL for image fields
+        if (!empty($settings['about_image']) && Storage::disk('public')->exists($settings['about_image'])) {
+            $settings['about_image'] = asset('storage/' . $settings['about_image']);
+        } else {
+            $settings['about_image'] = null;
+        }
+
         return response()->json(['success' => true, 'data' => $settings]);
     }
 
@@ -594,9 +601,13 @@ class AdminApiController extends Controller
             'instagram' => 'nullable|string|max:100',
             'facebook' => 'nullable|string|max:100',
             'maps_embed' => 'nullable|string',
-            'about_text' => 'nullable|string',
-            'show_testimonials' => 'nullable|boolean',
-            'gallery_auto_scroll' => 'nullable|boolean',
+            'about_image' => 'nullable|image|max:2048',
+            'about_title' => 'nullable|string|max:150',
+            'about_description' => 'nullable|string',
+            'about_quote' => 'nullable|string|max:255',
+            // Accept both boolean and string "true"/"false" for these fields
+            'show_testimonials' => 'nullable',
+            'gallery_auto_scroll' => 'nullable',
             'gallery_scroll_speed' => 'nullable|integer|min:10|max:60',
         ]);
 
@@ -605,13 +616,44 @@ class AdminApiController extends Controller
         Cache::forget('api:contact-info');
         Cache::forget('api:about');
 
-        foreach ($settings as $key => $value) {
-            // Convert boolean to string for storage
-            $value = is_bool($value) ? ($value ? '1' : '0') : $value;
+        // Handle about_image upload
+        if ($request->hasFile('about_image')) {
+            // Delete old image if exists
+            $oldSetting = SiteSetting::where('key', 'about_image')->first();
+            if ($oldSetting && $oldSetting->value && Storage::disk('public')->exists($oldSetting->value)) {
+                Storage::disk('public')->delete($oldSetting->value);
+            }
+            $aboutImagePath = $request->file('about_image')->store('settings', 'public');
+            SiteSetting::updateOrCreate(
+                ['key' => 'about_image'],
+                ['value' => $aboutImagePath, 'type' => 'image']
+            );
+        }
+
+        // Save other settings (except about_image which is handled separately)
+        $textSettings = collect($settings)->except(['about_image']);
+        foreach ($textSettings as $key => $value) {
+            // Skip null values - don't save them
+            if ($value === null || $value === '') {
+                continue;
+            }
+
+            if ($key === 'show_testimonials' || $key === 'gallery_auto_scroll') {
+                // Convert string to boolean for storage
+                // Accept "true", "false", "1", "0", true, false
+                if (is_string($value)) {
+                    $value = in_array(strtolower($value), ['true', '1', 'yes'], true);
+                }
+                $value = $value ? '1' : '0';
+            } elseif ($key === 'gallery_scroll_speed') {
+                // Convert to integer
+                $value = (int) $value;
+            }
+            // For other fields, keep as is
 
             SiteSetting::updateOrCreate(
                 ['key' => $key],
-                ['value' => $value, 'type' => 'text']
+                ['value' => is_string($value) ? $value : (string) $value, 'type' => 'text']
             );
         }
 

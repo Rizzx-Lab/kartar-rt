@@ -5,7 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\{Announcement, Program, ProgramSession, Gallery, GalleryPhoto, OrganizationMember, SiteSetting, Contact};
 use Illuminate\Http\{Request, JsonResponse};
-use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\{Cache, Storage};
 
 class PublicApiController extends Controller
 {
@@ -293,8 +293,9 @@ class PublicApiController extends Controller
         $cacheKey = 'api:about';
 
         // Data sudah sorted dari database, tidak perlu sort lagi di client
-        $members = Cache::remember($cacheKey, self::CACHE_TTL, function () {
-            return OrganizationMember::where('is_active', true)
+        $data = Cache::remember($cacheKey, self::CACHE_TTL, function () {
+            $settings = SiteSetting::pluck('value', 'key');
+            $members = OrganizationMember::where('is_active', true)
                 ->orderBy('order')
                 ->get()
                 ->map(fn($m) => [
@@ -304,15 +305,22 @@ class PublicApiController extends Controller
                     'photo' => $m->photo ? asset('storage/' . $m->photo) : null,
                     'order' => $m->order,
                 ]);
+
+            return [
+                'members' => $members,
+                'organization_name' => $settings['about_title'] ?? 'Karang Taruna Armalo Eluf',
+                'about_image' => !empty($settings['about_image']) && Storage::disk('public')->exists($settings['about_image'])
+                    ? asset('storage/' . $settings['about_image'])
+                    : null,
+                'about_description' => $settings['about_description'] ?? null,
+                'about_quote' => $settings['about_quote'] ?? null,
+                'location' => $settings['address'] ?? 'RT 06 RW 12, Surabaya',
+            ];
         });
 
         return response()->json([
             'success' => true,
-            'data' => [
-                'members' => $members,
-                'organization_name' => 'Karang Taruna Armalo Eluf',
-                'location' => 'RT 06 RW 12, Surabaya',
-            ]
+            'data' => $data,
         ]);
     }
 

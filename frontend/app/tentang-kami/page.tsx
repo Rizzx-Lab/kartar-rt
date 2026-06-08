@@ -1,10 +1,14 @@
 import { Metadata } from 'next';
 import Link from 'next/link';
-import { getAbout } from '@/lib/api';
 import { Users, Handshake, Target, Heart, Lightbulb } from 'lucide-react';
 
 // ISR - Revalidate every 60 seconds
 export const revalidate = 60;
+
+// Add cache tag for on-demand revalidation
+export function generateStaticParams() {
+  return [];
+}
 
 // SEO Metadata
 export const metadata: Metadata = {
@@ -24,16 +28,22 @@ interface OrganizationMember {
 interface AboutData {
   members: OrganizationMember[];
   organization_name: string;
+  about_image: string | null;
+  about_description: string | null;
+  about_quote: string | null;
   location: string;
 }
 
 // Server Component - Data fetched at build/request time
 async function getAboutData(): Promise<AboutData | null> {
   try {
-    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/about`, {
-      next: { revalidate: 60 },
-      headers: { 'Accept': 'application/json' },
-    });
+    const response = await fetch(
+      `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/about`,
+      {
+        next: { revalidate: 60, tags: ['about'] },
+        headers: { 'Accept': 'application/json' },
+      }
+    );
     if (!response.ok) throw new Error('Failed to fetch');
     const data = await response.json();
     return data.success ? data.data : null;
@@ -41,6 +51,14 @@ async function getAboutData(): Promise<AboutData | null> {
     return null;
   }
 }
+
+// Default values
+const defaultAboutData = {
+  organization_name: 'Armalo Eluf',
+  about_description: '"Armalo Eluf" terinspirasi dari nama-nama gang di lingkungan RT 06 RW 12, Manukan Lor. AREK MANUKAN LOR TELU EF — nama-nama yang membentuk identitas dan kebanggaan kami.\n\nBermula dari kepedulian pemuda terhadap lingkungan sekitar, kami sepakat membentuk wadah untuk saling berbagi ilmu, pengalaman, dan aksi nyata demi kebaikan bersama.',
+  about_quote: 'Sederhana tempat kami, tapi besar semangat kami.',
+  about_image: null,
+};
 
 // Image URL helper
 function getImageUrl(path: string | null): string | null {
@@ -53,6 +71,12 @@ function getImageUrl(path: string | null): string | null {
 
 export default async function AboutPage() {
   const data = await getAboutData();
+
+  // Get dynamic or default values
+  const organizationName = data?.organization_name || defaultAboutData.organization_name;
+  const aboutImage = data?.about_image || defaultAboutData.about_image;
+  const aboutDescription = data?.about_description || defaultAboutData.about_description;
+  const aboutQuote = data?.about_quote || defaultAboutData.about_quote;
 
   // Default members if API fails
   const members = data?.members || [];
@@ -69,7 +93,7 @@ export default async function AboutPage() {
             <div className="relative">
               <div className="aspect-square sm:aspect-4/3 rounded-2xl overflow-hidden shadow-xl">
                 <img
-                  src="https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=800&q=80"
+                  src={aboutImage || 'https://images.unsplash.com/photo-1529156069898-49953e39b3ac?w=800&q=80'}
                   alt="Youth Community"
                   className="w-full h-full object-cover"
                 />
@@ -95,21 +119,34 @@ export default async function AboutPage() {
                 Siapa Kami
               </span>
               <h1 className="text-2xl md:text-3xl font-bold text-navy-800 mb-5">
-                Armalo Eluf
+                {organizationName}
               </h1>
-              <p className="text-gray-600 mb-4 leading-relaxed">
-                "Armalo Eluf" terinspirasi dari nama-nama gang di lingkungan RT 06 RW 12, Manukan Lor. <strong className="text-navy-800">AREK MANUKAN LOR TELU EF</strong> — nama-nama yang membentuk identitas dan kebanggaan kami.
-              </p>
-              <p className="text-gray-600 mb-5 leading-relaxed">
-                Bermula dari kepedulian pemuda terhadap lingkungan sekitar, kami sepakat membentuk wadah untuk saling berbagi ilmu, pengalaman, dan aksi nyata demi kebaikan bersama.
-              </p>
+              {aboutDescription && (
+                <>
+                  {aboutDescription.split('\n\n').map((paragraph, index) => (
+                    <p key={index} className="text-gray-600 mb-4 leading-relaxed">
+                      {paragraph.includes('AREK MANUKAN LOR TELU EF') ? (
+                        <>
+                          {paragraph.split('AREK MANUKAN LOR TELU EF')[0]}
+                          <strong className="text-navy-800">AREK MANUKAN LOR TELU EF</strong>
+                          {paragraph.split('AREK MANUKAN LOR TELU EF')[1]}
+                        </>
+                      ) : (
+                        paragraph
+                      )}
+                    </p>
+                  ))}
+                </>
+              )}
 
               {/* Highlight quote */}
-              <div className="bg-navy-50 border-l-4 border-gold-500 p-4 rounded-r-lg">
-                <p className="text-navy-800 italic">
-                  "Sederhana tempat kami, tapi besar semangat kami."
-                </p>
-              </div>
+              {aboutQuote && (
+                <div className="bg-navy-50 border-l-4 border-gold-500 p-4 rounded-r-lg">
+                  <p className="text-navy-800 italic">
+                    "{aboutQuote}"
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         </div>

@@ -1,7 +1,8 @@
 {
-  "/page": "app/page.js",
-  "/kegiatan/page": "app/kegiatan/page.js",
-  "/kontak/page": "app/kontak/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
   "/tentang-kami/page": "app/tentang-kami/page.js",
-  "/admin/programs/page": "app/admin/programs/page.js"
+  "/api/revalidate/route": "app/api/revalidate/route.js",
+  "/admin/settings/page": "app/admin/settings/page.js",
+  "/admin/login/page": "app/admin/login/page.js",
+  "/admin/dashboard/page": "app/admin/dashboard/page.js"
 }

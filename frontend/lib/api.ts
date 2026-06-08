@@ -100,6 +100,9 @@ export async function getAbout() {
   return apiFetch<{
     members: OrganizationMember[];
     organization_name: string;
+    about_image: string | null;
+    about_description: string | null;
+    about_quote: string | null;
     location: string;
   }>('/about');
 }
@@ -228,7 +231,10 @@ export interface ContactInfo {
 export interface SiteSettings {
   site_name: string;
   site_tagline: string;
-  about_text: string | null;
+  about_image: string | null;
+  about_title: string | null;
+  about_description: string | null;
+  about_quote: string | null;
   address: string;
   phone: string;
   email: string | null;
@@ -250,7 +256,10 @@ export async function getSettings() {
 export const defaultSettings: SiteSettings = {
   site_name: 'Karang Taruna Armalo Eluf',
   site_tagline: 'Bersama Membangun Komunitas yang Lebih Baik',
-  about_text: null,
+  about_image: null,
+  about_title: 'Armalo Eluf',
+  about_description: null,
+  about_quote: null,
   address: 'Jl. Manukan Lor 3F RT 06 RW 12, Surabaya',
   phone: '08xxxxxxxxxx',
   email: null,

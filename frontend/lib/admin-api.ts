@@ -281,13 +281,21 @@ export async function getSettings() {
   return adminFetch<any>('/admin/settings');
 }
 
-export async function updateSettings(data: any) {
-  // Convert boolean to string for Laravel
+export async function updateSettings(data: any, hasFile = false) {
+  // Always use FormData since frontend always sends it
+  if (data instanceof FormData) {
+    return adminFetch<any>('/admin/settings', {
+      method: 'POST',
+      body: data,
+    });
+  }
+
+  // Fallback to JSON if somehow data is not FormData
   const formattedData: Record<string, any> = {};
   for (const [key, value] of Object.entries(data)) {
     if (typeof value === 'boolean') {
       formattedData[key] = value ? '1' : '0';
-    } else {
+    } else if (value !== undefined && value !== null) {
       formattedData[key] = value;
     }
   }

@@ -12,18 +12,44 @@ interface Settings {
   whatsapp: string;
   instagram: string;
   facebook: string;
-  about_text: string;
+  about_image: string | null;
+  about_title: string;
+  about_description: string;
+  about_quote: string;
   show_testimonials: boolean;
   testimonials_auto_scroll: boolean;
   gallery_auto_scroll: boolean;
   gallery_scroll_speed: number;
 }
 
+// Initialize with default values for new fields
+const getInitialSettings = () => ({
+  site_name: '',
+  site_tagline: '',
+  address: '',
+  phone: '',
+  email: '',
+  whatsapp: '',
+  instagram: '',
+  facebook: '',
+  about_image: null as string | null,
+  about_title: '',
+  about_description: '',
+  about_quote: '',
+  show_testimonials: true,
+  testimonials_auto_scroll: true,
+  gallery_auto_scroll: true,
+  gallery_scroll_speed: 30,
+});
+
 export default function AdminSettingsPage() {
-  const [settings, setSettings] = useState<Partial<Settings>>({});
+  const [settings, setSettings] = useState<Partial<Settings>>(getInitialSettings());
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [aboutImagePreview, setAboutImagePreview] = useState<string | null>(null);
+  const [aboutImageFile, setAboutImageFile] = useState<File | null>(null);
 
   useEffect(() => {
     fetchSettings();
@@ -33,7 +59,14 @@ export default function AdminSettingsPage() {
     setIsLoading(true);
     const response = await getSettings();
     if (response.success && response.data) {
-      setSettings(response.data);
+      // Merge with initial settings to ensure all fields exist
+      setSettings({ ...getInitialSettings(), ...response.data });
+      // Set about image preview if exists
+      if (response.data.about_image) {
+        setAboutImagePreview(response.data.about_image);
+      }
+    } else {
+      setSettings(getInitialSettings());
     }
     setIsLoading(false);
   };
@@ -41,16 +74,69 @@ export default function AdminSettingsPage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
-    const response = await updateSettings(settings);
-    setIsSaving(false);
-    if (response.success) {
-      setSaved(true);
-      setTimeout(() => setSaved(false), 3000);
-      // Fetch ulang data dari server untuk sinkronisasi
-      const freshData = await getSettings();
-      if (freshData.success && freshData.data) {
-        setSettings(freshData.data);
+    setError(null);
+
+    try {
+      // Create FormData for file upload
+      const formData = new FormData();
+
+      // List of all field keys to always include
+      const fieldKeys = [
+        'site_name', 'site_tagline', 'address', 'phone', 'email',
+        'whatsapp', 'instagram', 'facebook',
+        'about_title', 'about_description', 'about_quote',
+        'show_testimonials', 'gallery_auto_scroll', 'gallery_scroll_speed'
+      ];
+
+      // Add all text settings
+      fieldKeys.forEach(key => {
+        const value = settings[key as keyof typeof settings];
+        if (value !== undefined && value !== null) {
+          formData.append(key, String(value));
+        }
+      });
+
+      // Add image file if changed
+      if (aboutImageFile) {
+        formData.append('about_image', aboutImageFile);
+        console.log('Uploading image:', aboutImageFile.name, aboutImageFile.size, 'bytes');
       }
+
+      console.log('Saving settings with FormData, about_title:', settings.about_title);
+      const response = await updateSettings(formData, aboutImageFile !== null);
+      console.log('Response:', response);
+
+      if (response.success) {
+        setSaved(true);
+        setTimeout(() => setSaved(false), 3000);
+        // Fetch ulang data dari server untuk sinkronisasi
+        const freshData = await getSettings();
+        if (freshData.success && freshData.data) {
+          setSettings(freshData.data);
+          if (freshData.data.about_image) {
+            setAboutImagePreview(freshData.data.about_image);
+          }
+          setAboutImageFile(null);
+        }
+        // Trigger revalidation untuk halaman Tentang langsung berubah
+        try {
+          await fetch('/api/revalidate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: '/tentang-kami', tag: 'about' }),
+          });
+        } catch (revalidateError) {
+          console.log('Revalidation failed, page will update in next ISR cycle');
+        }
+      } else {
+        console.log('Save failed:', response.message);
+        setError(response.message || 'Gagal menyimpan pengaturan.');
+      }
+    } catch (err) {
+      console.error('Save error:', err);
+      setError('Terjadi kesalahan saat menyimpan.');
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -118,18 +204,115 @@ export default function AdminSettingsPage() {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-500 focus:border-gold-500 transition-colors"
                 />
               </div>
+            </div>
+          </div>
+
+          {/* About / Siapa Kami Section */}
+          <div className="bg-white rounded-xl p-6 shadow-sm">
+            <div className="flex items-center gap-3 mb-5">
+              <div className="w-10 h-10 bg-purple-500 rounded-lg flex items-center justify-center">
+                <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+                </svg>
+              </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Teks About</label>
+                <h2 className="font-semibold text-navy-800">Tentang Kami</h2>
+                <p className="text-xs text-gray-500">Pengaturan section "Siapa Kami" di halaman Tentang</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              {/* About Image */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Foto Siapa Kami</label>
+                <div className="flex items-start gap-4">
+                  <div className="flex-shrink-0">
+                    {aboutImagePreview || settings.about_image ? (
+                      <div className="relative">
+                        <img
+                          src={aboutImagePreview || settings.about_image || ''}
+                          alt="About Preview"
+                          className="w-32 h-32 object-cover rounded-lg border"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setAboutImagePreview(null);
+                            setAboutImageFile(null);
+                            setSettings({ ...settings, about_image: null });
+                          }}
+                          className="absolute -top-2 -right-2 w-6 h-6 bg-red-500 text-white rounded-full flex items-center justify-center hover:bg-red-600"
+                        >
+                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </div>
+                    ) : (
+                      <div className="w-32 h-32 border-2 border-dashed border-gray-300 rounded-lg flex items-center justify-center text-gray-400">
+                        <svg className="w-8 h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                        </svg>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex-1">
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          setAboutImageFile(file);
+                          setAboutImagePreview(URL.createObjectURL(file));
+                        }
+                      }}
+                      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gold-50 file:text-navy-900 hover:file:bg-gold-100"
+                    />
+                    <p className="mt-1 text-xs text-gray-500">PNG, JPG, atau WEBP. Maksimal 2MB.</p>
+                  </div>
+                </div>
+              </div>
+
+              {/* About Title */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Judul</label>
+                <input
+                  type="text"
+                  value={settings.about_title || ''}
+                  onChange={(e) => setSettings({ ...settings, about_title: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-500 focus:border-gold-500 transition-colors"
+                  placeholder="Contoh: Armalo Eluf"
+                />
+              </div>
+
+              {/* About Description */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Deskripsi</label>
                 <textarea
-                  value={settings.about_text || ''}
-                  onChange={(e) => setSettings({ ...settings, about_text: e.target.value })}
+                  value={settings.about_description || ''}
+                  onChange={(e) => setSettings({ ...settings, about_description: e.target.value })}
                   rows={4}
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-500 focus:border-gold-500 resize-none transition-colors"
+                  placeholder="Deskripsi tentang organisasi..."
+                />
+              </div>
+
+              {/* About Quote */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Kutipan</label>
+                <input
+                  type="text"
+                  value={settings.about_quote || ''}
+                  onChange={(e) => setSettings({ ...settings, about_quote: e.target.value })}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-500 focus:border-gold-500 transition-colors"
+                  placeholder="Contoh: Sederhana tempat kami, tapi besar semangat kami."
                 />
               </div>
             </div>
           </div>
 
+          
           {/* Contact Info */}
           <div className="bg-white rounded-xl p-6 shadow-sm">
             <div className="flex items-center gap-3 mb-5">
@@ -336,6 +519,21 @@ export default function AdminSettingsPage() {
             </div>
           </div>
         </div>
+
+        {/* Error Message */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center gap-3">
+            <svg className="w-5 h-5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <span className="text-sm">{error}</span>
+            <button onClick={() => setError(null)} className="ml-auto text-red-500 hover:text-red-700">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+        )}
 
         {/* Save Button */}
         <div className="flex items-center justify-end gap-4">

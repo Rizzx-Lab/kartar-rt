@@ -1,11 +1,10 @@
 {
   "pages": {
-    "/admin/programs/page": [
+    "/admin/settings/page": [
       "static/chunks/webpack.js",
       "static/chunks/vendors.js",
       "static/chunks/main-app.js",
-      "static/chunks/framer-motion.js",
-      "static/chunks/app/admin/programs/page.js"
+      "static/chunks/app/admin/settings/page.js"
     ],
     "/admin/layout": [
       "static/chunks/webpack.js",
@@ -28,29 +27,30 @@
       "static/chunks/main-app.js",
       "static/chunks/app/loading.js"
     ],
-    "/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/vendors.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/page.js"
-    ],
     "/tentang-kami/page": [
       "static/chunks/webpack.js",
       "static/chunks/vendors.js",
       "static/chunks/main-app.js",
       "static/chunks/app/tentang-kami/page.js"
     ],
-    "/kegiatan/page": [
+    "/admin/login/page": [
       "static/chunks/webpack.js",
       "static/chunks/vendors.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/kegiatan/page.js"
+      "static/chunks/framer-motion.js",
+      "static/chunks/app/admin/login/page.js"
     ],
-    "/kontak/page": [
+    "/admin/dashboard/page": [
       "static/chunks/webpack.js",
       "static/chunks/vendors.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/kontak/page.js"
+      "static/chunks/app/admin/dashboard/page.js"
+    ],
+    "/_not-found/page": [
+      "static/chunks/webpack.js",
+      "static/chunks/vendors.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/_not-found/page.js"
     ]
   }
 }
