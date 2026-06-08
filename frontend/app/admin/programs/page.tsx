@@ -1,9 +1,9 @@
 'use client';
 
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getPrograms, createProgram, updateProgram, deleteProgram, getProgramSessions, createSession, updateSession, deleteSession } from '@/lib/admin-api';
-import { Calendar, Repeat, Clock, ArrowRight, Sparkles, X, Edit2, Trash2, Plus, ChevronDown, Image } from 'lucide-react';
+import { Calendar, X, Edit2, Trash2, Plus, ArrowRight } from 'lucide-react';
 
 interface Program {
   id: number;
@@ -55,7 +55,7 @@ const getImageUrl = (path: string | null): string | null => {
 export default function AdminProgramsPage() {
   const [programs, setPrograms] = useState<Program[]>([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [_error, setError] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [editingProgram, setEditingProgram] = useState<Program | null>(null);
   const [formData, setFormData] = useState<FormData>({
@@ -172,7 +172,6 @@ export default function AdminProgramsPage() {
   // Session management functions
   const openSessionsModal = async (program: Program) => {
     setSelectedProgram(program);
-    setShowSessionModal(false); // Reset
     resetSessionForm(); // Reset form to add mode
     setLoadingSessions(true);
     try {
@@ -195,6 +194,7 @@ export default function AdminProgramsPage() {
       formSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
+  void openCreateSessionModal; // TODO: remove when needed
 
   const openEditSessionModal = (session: Session) => {
     setEditingSession(session);
@@ -338,74 +338,87 @@ export default function AdminProgramsPage() {
       ) : paginatedPrograms.length > 0 ? (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {paginatedPrograms.map((program) => (
-              <div key={program.id} className="bg-white rounded-xl overflow-hidden shadow-sm hover:shadow-lg transition-all">
-                <div className="relative h-36 bg-gray-100">
-                  {getImageUrl(program.cover_image) ? (
-                    <img
-                      src={getImageUrl(program.cover_image)!}
-                      alt={program.name}
-                      className="w-full h-full object-cover"
-                      onError={(e) => {
-                        e.currentTarget.style.display = 'none';
-                      }}
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-100 to-gray-200">
-                      <svg className="w-12 h-12 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828l0 0M16 4v.586a2 2 0 00-.586-.586h-4.828a2 2 0 00-.586.586V8m0 0v12m0 0v-3.586a2 2 0 00-.586-.586h-4.828a2 2 0 00-.586.586V4m0 0v16" />
-                      </svg>
+            {paginatedPrograms.map((program) => {
+              const freqConfig = {
+                monthly: { label: 'Bulanan', bgColor: 'bg-emerald-500', textColor: 'text-emerald-600' },
+                yearly: { label: 'Tahunan', bgColor: 'bg-blue-500', textColor: 'text-blue-600' },
+                once: { label: 'Sekali', bgColor: 'bg-purple-500', textColor: 'text-purple-600' },
+                irregular: { label: 'Tidak Rutin', bgColor: 'bg-amber-500', textColor: 'text-amber-600' },
+              };
+              const freq = freqConfig[program.frequency as keyof typeof freqConfig] || freqConfig.irregular;
+              const hasImage = getImageUrl(program.cover_image);
+
+              return (
+                <div key={program.id} className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 h-full flex flex-col group">
+                  {/* Image Area */}
+                  <div className="relative h-40 overflow-hidden">
+                    {hasImage ? (
+                      <img
+                        src={getImageUrl(program.cover_image)!}
+                        alt={program.name}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500"
+                      />
+                    ) : (
+                      <div className="w-full h-full bg-gradient-to-br from-navy-100 to-navy-200" />
+                    )}
+
+                    {/* Hover Overlay */}
+                    <div className="absolute inset-0 bg-navy-900/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <span className="text-white font-semibold text-sm flex items-center gap-2">
+                        Lihat Detail
+                        <ArrowRight className="w-4 h-4" />
+                      </span>
                     </div>
-                  )}
-                  <div className="absolute top-3 right-3">
-                    <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                      program.frequency === 'monthly' ? 'bg-green-500 text-white' :
-                      program.frequency === 'yearly' ? 'bg-blue-500 text-white' :
-                      'bg-gray-500 text-white'
-                    }`}>
-                      {program.frequency === 'monthly' ? 'Bulanan' :
-                       program.frequency === 'yearly' ? 'Tahunan' :
-                       program.frequency === 'once' ? 'Sekali' : 'Tidak Rutin'}
-                    </span>
-                  </div>
-                  {program.is_active && (
-                    <div className="absolute top-3 left-3">
-                      <span className="px-2 py-1 bg-green-500 text-white text-xs font-medium rounded-full">Aktif</span>
+
+                    {/* Status Badges */}
+                    <div className="absolute top-3 right-3">
+                      <span className={`px-2.5 py-1 text-xs font-semibold rounded-full text-white ${freq.bgColor}`}>
+                        {freq.label}
+                      </span>
                     </div>
-                  )}
-                </div>
-                <div className="p-4">
-                  <h3 className="font-semibold text-navy-800 mb-1">{program.name}</h3>
-                  <p className="text-xs text-gray-500 mb-3">
-                    {new Date(program.created_at).toLocaleDateString('id-ID', {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric',
-                    })}
-                  </p>
-                  <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
-                    <button
-                      onClick={() => openSessionsModal(program)}
-                      className="flex-1 px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
-                    >
-                      Kelola Sesi
-                    </button>
-                    <button
-                      onClick={() => openEditModal(program)}
-                      className="p-2 text-gold-600 hover:bg-gold-50 rounded-lg transition-colors"
-                    >
-                      <Edit2 className="w-5 h-5" />
-                    </button>
-                    <button
-                      onClick={() => handleDelete(program.id)}
-                      className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                    >
-                      <Trash2 className="w-5 h-5" />
-                    </button>
+                    {program.is_active && (
+                      <div className="absolute top-3 left-3">
+                        <span className="px-2.5 py-1 bg-green-500 text-white text-xs font-semibold rounded-full">Aktif</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Content */}
+                  <div className="p-5 flex-1 flex flex-col">
+                    <h3 className="font-bold text-navy-900 text-base mb-1 group-hover:text-gold-600 transition-colors">
+                      {program.name}
+                    </h3>
+                    {program.description && (
+                      <p className="text-gray-500 text-sm leading-relaxed line-clamp-2 flex-1">
+                        {program.description}
+                      </p>
+                    )}
+
+                    {/* Bottom meta */}
+                    <div className="flex items-center gap-2 pt-3 border-t border-gray-100">
+                      <button
+                        onClick={() => openSessionsModal(program)}
+                        className="flex-1 px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                      >
+                        Kelola Sesi
+                      </button>
+                      <button
+                        onClick={() => openEditModal(program)}
+                        className="p-2 text-gold-600 hover:bg-gold-50 rounded-lg transition-colors"
+                      >
+                        <Edit2 className="w-5 h-5" />
+                      </button>
+                      <button
+                        onClick={() => handleDelete(program.id)}
+                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                      >
+                        <Trash2 className="w-5 h-5" />
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Pagination */}

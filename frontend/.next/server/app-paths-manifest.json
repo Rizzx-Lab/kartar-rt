@@ -1,1 +1,7 @@
-{}
+{
+  "/page": "app/page.js",
+  "/kegiatan/page": "app/kegiatan/page.js",
+  "/kontak/page": "app/kontak/page.js",
+  "/tentang-kami/page": "app/tentang-kami/page.js",
+  "/admin/programs/page": "app/admin/programs/page.js"
+}

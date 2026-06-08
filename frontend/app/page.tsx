@@ -85,10 +85,10 @@ export default async function HomePage() {
               Karang Taruna Armalo Eluf hadir untuk menyatukan pemuda, menjalankan program yang bermanfaat, dan mempererat kebersamaan warga RT.
             </p>
             <div className="flex flex-wrap gap-4">
-              <Link href="/kegiatan" className="inline-flex items-center gap-2 bg-amber-500 text-navy-900 px-6 py-3 rounded-xl font-semibold hover:bg-amber-400 transition-all duration-300 shadow-lg shadow-amber-500/30">
+              <Link href="/kegiatan" className="inline-flex items-center justify-center gap-2 bg-amber-500 text-navy-900 px-6 py-3 rounded-xl font-semibold hover:bg-amber-400 transition-all duration-300 shadow-lg shadow-amber-500/30">
                 Lihat Kegiatan
               </Link>
-              <Link href="/tentang-kami" className="inline-flex items-center gap-2 border border-white/30 text-white px-6 py-3 rounded-xl font-medium hover:border-amber-400 hover:text-amber-400 transition-all duration-300">
+              <Link href="/tentang-kami" className="inline-flex items-center justify-center gap-2 border border-white/30 text-white px-6 py-3 rounded-xl font-medium hover:border-amber-400 hover:text-amber-400 transition-all duration-300">
                 Tentang Kami
               </Link>
             </div>
@@ -315,10 +315,10 @@ export default async function HomePage() {
             Jangan ragu untuk menghubungi kami. Kami selalu terbuka untuk kolaborasi dan partisipasi warga.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/kontak" className="inline-flex items-center gap-2 px-6 py-2.5 bg-gold-500 hover:bg-gold-600 text-navy-900 font-semibold rounded-full transition-colors shadow-lg shadow-gold-500/30">
+            <Link href="/kontak" className="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-gold-500 hover:bg-gold-600 text-navy-900 font-semibold rounded-full transition-colors shadow-lg shadow-gold-500/30">
               Hubungi Kami
             </Link>
-            <Link href="/kegiatan" className="inline-flex items-center gap-2 px-6 py-2.5 border border-white/30 hover:border-white/60 text-white rounded-full transition-colors">
+            <Link href="/kegiatan" className="inline-flex items-center justify-center gap-2 px-6 py-2.5 border border-white/30 hover:border-white/60 text-white rounded-full transition-colors">
               Lihat Kegiatan
             </Link>
           </div>

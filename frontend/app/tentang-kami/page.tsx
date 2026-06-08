@@ -237,12 +237,12 @@ export default async function AboutPage() {
           <div className="flex flex-wrap justify-center gap-3">
             <Link
               href="/kontak"
-              className="px-6 py-2.5 bg-gold-500 hover:bg-gold-600 text-navy-900 font-semibold rounded-full transition-colors text-sm shadow-lg shadow-gold-500/30">
+              className="inline-flex items-center justify-center px-6 py-2.5 bg-gold-500 hover:bg-gold-600 text-navy-900 font-semibold rounded-full transition-colors text-sm shadow-lg shadow-gold-500/30">
               Hubungi Kami
             </Link>
             <Link
               href="/kegiatan"
-              className="px-6 py-2.5 border border-white/30 hover:border-white/60 text-white rounded-full transition-colors text-sm">
+              className="inline-flex items-center justify-center px-6 py-2.5 border border-white/30 hover:border-white/60 text-white rounded-full transition-colors text-sm">
               Lihat Kegiatan
             </Link>
           </div>

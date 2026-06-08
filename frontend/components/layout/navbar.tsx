@@ -155,12 +155,12 @@ export function Navbar() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ duration: 0.5, delay: 0.2 }}
-        className="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 md:hidden"
+        className="fixed bottom-6 left-4 right-4 z-50 md:hidden flex justify-center"
       >
         <motion.div
           animate={{ y: [0, -2, 0] }}
           transition={{ duration: 2, repeat: Infinity }}
-          className="flex items-center gap-1 bg-navy-800/95 backdrop-blur-xl border border-white/10 py-2 px-2 rounded-full shadow-xl shadow-navy-900/50"
+          className="flex items-center gap-4 bg-navy-800/95 backdrop-blur-xl border border-white/10 py-1 px-2 rounded-full shadow-xl shadow-navy-900/50 max-w-[calc(100vw-2rem)]"
         >
           {navItems.map((item, index) => {
             const Icon = item.icon;
