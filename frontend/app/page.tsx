@@ -175,7 +175,7 @@ export default async function HomePage() {
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {programs.slice(0, 6).map((program) => {
               const hasImage = getImageUrl(program.cover_image);
-              const freqConfig = {
+              const freqConfig: Record<string, { label: string; bgColor: string; textColor: string }> = {
                 monthly: { label: 'Bulanan', bgColor: 'bg-emerald-500', textColor: 'text-emerald-600' },
                 yearly: { label: 'Tahunan', bgColor: 'bg-blue-500', textColor: 'text-blue-600' },
                 once: { label: 'Sekali', bgColor: 'bg-purple-500', textColor: 'text-purple-600' },
