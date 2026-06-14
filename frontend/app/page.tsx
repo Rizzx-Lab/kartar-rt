@@ -50,7 +50,7 @@ const getImageUrl = (path: string | null): string | null => {
   if (path.startsWith('http://') || path.startsWith('https://')) {
     return path;
   }
-  return `http://localhost:8000/storage/${path}`;
+  return `https://armaloeluf.my.id/storage/${path}`;
 };
 
 // Main Server Component
