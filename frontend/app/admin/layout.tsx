@@ -249,18 +249,9 @@ export default function AdminLayout({
           </div>
 
           {/* Right Side */}
-          <div className="flex items-center gap-2 md:gap-4">
-            {/* Quick Actions */}
+          <div className="flex items-center gap-2 md:gap-3">
+            {/* Install PWA Button */}
             <PWAInstallPrompt />
-
-            <Link
-              href="/"
-              target="_blank"
-              className="hidden sm:flex items-center gap-2 px-3 py-2 text-sm text-gray-600 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all"
-            >
-              <ExternalLink className="w-4 h-4" />
-              <span className="hidden lg:inline">Website</span>
-            </Link>
 
             {/* Notification Bell */}
             <div className="relative notification-dropdown">
