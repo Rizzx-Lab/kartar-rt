@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
+import { PWAInstallPrompt } from '@/components/ui/pwa-install-prompt';
 import {
   LayoutDashboard,
   Calendar,
@@ -177,7 +178,15 @@ export default function AdminLayout({
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
   return (
-    <div className="flex h-screen bg-gray-100">
+    <>
+      {/* PWA Meta Tags */}
+      <link rel="manifest" href="/admin/manifest.json" />
+      <meta name="theme-color" content="#C9A84C" />
+      <meta name="apple-mobile-web-app-capable" content="yes" />
+      <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+      <link rel="apple-touch-icon" href="/icons/icon-192.png" />
+
+      <div className="flex h-screen bg-gray-100">
       {/* Mobile Sidebar Overlay */}
       <AnimatePresence>
         {isMobileOpen && (
@@ -242,6 +251,8 @@ export default function AdminLayout({
           {/* Right Side */}
           <div className="flex items-center gap-2 md:gap-4">
             {/* Quick Actions */}
+            <PWAInstallPrompt />
+
             <Link
               href="/"
               target="_blank"
@@ -389,7 +400,8 @@ export default function AdminLayout({
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+      </div>
+    </>
   );
 }
 

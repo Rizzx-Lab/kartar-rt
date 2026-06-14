@@ -1,5 +1,36 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {
+const withPWA = require('next-pwa')({
+  dest: 'public',
+  register: true,
+  skipWaiting: true,
+  disable: process.env.NODE_ENV === 'development',
+  runtimeCaching: [
+    {
+      urlPattern: /^\/admin\//,
+      handler: 'CacheFirst',
+      options: {
+        cacheName: 'admin-cache',
+        expiration: {
+          maxEntries: 100,
+          maxAgeSeconds: 60 * 60 * 24 * 7, // 7 hari
+        },
+      },
+    },
+    {
+      urlPattern: /^https:\/\/armaloeluf\.my\.id\/storage\//,
+      handler: 'CacheFirst',
+      options: {
+        cacheName: 'media-cache',
+        expiration: {
+          maxEntries: 50,
+          maxAgeSeconds: 60 * 60 * 24 * 30, // 30 hari
+        },
+      },
+    },
+  ],
+});
+
+const nextConfig = withPWA({
   // Enable React strict mode for better development experience
   reactStrictMode: true,
 
@@ -22,6 +53,10 @@ const nextConfig = {
       {
         protocol: 'https',
         hostname: 'picsum.photos',
+      },
+      {
+        protocol: 'https',
+        hostname: 'armaloeluf.my.id',
       },
     ],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
@@ -94,6 +129,6 @@ const nextConfig = {
 
     return config;
   },
-};
+});
 
 module.exports = nextConfig;
