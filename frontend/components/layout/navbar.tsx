@@ -177,7 +177,7 @@ export function Navbar() {
                   href={item.url}
                   onClick={() => setActiveTab(item.name)}
                   className={cn(
-                    "relative cursor-pointer p-3 rounded-full transition-all",
+                    "relative cursor-pointer w-10 h-10 flex items-center justify-center rounded-full transition-all",
                     isActive ? "text-gold-400" : "text-white/70 hover:text-white"
                   )}
                 >
@@ -191,7 +191,7 @@ export function Navbar() {
                   {isActive && (
                     <motion.div
                       layoutId="mobile-lamp"
-                      className="absolute inset-0 w-full bg-white/10 rounded-full -z-10"
+                      className="absolute inset-0 m-auto w-10 h-10 bg-white/10 rounded-full -z-10"
                       initial={false}
                       transition={{
                         type: "spring",
