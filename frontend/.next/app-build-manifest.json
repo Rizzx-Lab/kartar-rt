@@ -32,12 +32,12 @@
       "static/chunks/main-app.js",
       "static/chunks/app/kegiatan/page.js"
     ],
-    "/pengumuman/page": [
+    "/kegiatan/[slug]/page": [
       "static/chunks/webpack.js",
       "static/chunks/vendors.js",
       "static/chunks/main-app.js",
       "static/chunks/framer-motion.js",
-      "static/chunks/app/pengumuman/page.js"
+      "static/chunks/app/kegiatan/[slug]/page.js"
     ],
     "/galeri/page": [
       "static/chunks/webpack.js",
@@ -45,50 +45,6 @@
       "static/chunks/main-app.js",
       "static/chunks/framer-motion.js",
       "static/chunks/app/galeri/page.js"
-    ],
-    "/kontak/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/vendors.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/kontak/page.js"
-    ],
-    "/admin/login/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/vendors.js",
-      "static/chunks/main-app.js",
-      "static/chunks/framer-motion.js",
-      "static/chunks/app/admin/login/page.js"
-    ],
-    "/admin/layout": [
-      "static/chunks/webpack.js",
-      "static/chunks/vendors.js",
-      "static/chunks/main-app.js",
-      "static/chunks/framer-motion.js",
-      "static/chunks/app/admin/layout.js"
-    ],
-    "/admin/dashboard/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/vendors.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/admin/dashboard/page.js"
-    ],
-    "/admin/organization/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/vendors.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/admin/organization/page.js"
-    ],
-    "/admin/settings/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/vendors.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/admin/settings/page.js"
-    ],
-    "/_not-found/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/vendors.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/_not-found/page.js"
     ]
   }
 }
