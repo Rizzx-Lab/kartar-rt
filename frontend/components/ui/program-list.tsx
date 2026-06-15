@@ -62,9 +62,8 @@ export function ProgramList({ programs }: ProgramListProps) {
 
   return (
     <div>
-      <div className="bg-white border-b border-gray-100 sticky top-16 md:top-0 z-10 shadow-sm">
-        <div className="py-4 sm:py-5">
-          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="bg-white border-b border-gray-100 shadow-sm" style={{ position: 'sticky', top: 0, zIndex: 30 }}>
+        <div className="py-4 sm:py-5 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex flex-wrap items-center gap-2 sm:gap-3">
               <span className="text-sm font-semibold text-gray-700 mr-1 flex items-center gap-2">
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

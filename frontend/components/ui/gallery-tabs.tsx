@@ -62,11 +62,11 @@ export default function GalleryTabs({ recentPhotos, archives, autoScroll = true,
       </section>
 
       {/* Main Content - Sticky Context Wrapper */}
-      <div className="bg-white relative">
-        {/* Sticky Tabs - dipisah dari parent untuk fix sticky */}
-        <div className="sticky top-16 md:top-18 z-40 bg-white border-b border-gray-100 shadow-sm">
+      <div className="bg-white">
+        {/* Sticky Tabs - inline style untuk fix */}
+        <div className="bg-white border-b border-gray-100 shadow-sm" style={{ position: 'sticky', top: 0, zIndex: 30 }}>
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex items-center gap-1 py-3 -mx-4 px-4 sm:mx-0 sm:px-0">
+            <div className="flex items-center gap-2 py-3 -mx-4 px-4 sm:mx-0 sm:px-0">
               <button
                 onClick={() => setActiveSection('recent')}
                 className={`flex items-center gap-2 px-4 sm:px-5 py-2 text-sm font-medium rounded-lg transition-all duration-200 whitespace-nowrap ${
