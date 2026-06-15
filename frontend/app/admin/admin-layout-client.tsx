@@ -28,7 +28,6 @@ import {
 import { cn } from '@/lib/utils';
 import { getNotifications } from '@/lib/admin-api';
 
-// Navigation Items - filtered by role
 const allNavItems = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/admin/programs', label: 'Program', icon: Calendar },
@@ -40,7 +39,6 @@ const allNavItems = [
   { href: '/admin/settings', label: 'Pengaturan', icon: Settings, superAdminOnly: true },
 ];
 
-// Collapsible Section Component
 const CollapsibleSection = ({
   title,
   children,
@@ -97,12 +95,6 @@ export default function AdminLayoutClient({
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
 
-  // Swipe gesture state
-  const [touchStart, setTouchStart] = useState<number | null>(null);
-  const [touchEnd, setTouchEnd] = useState<number | null>(null);
-  const minSwipeDistance = 50;
-
-  // Filter nav items based on user role
   const navItems = allNavItems.filter(item => {
     if (item.superAdminOnly) {
       return user?.role === 'superadmin' || user?.role === 'super_admin';
@@ -110,7 +102,7 @@ export default function AdminLayoutClient({
     return true;
   });
 
-  // Fetch real notifications
+  // Fetch notifications
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
@@ -135,40 +127,48 @@ export default function AdminLayoutClient({
     }
   }, [isAuthenticated, isLoading, router, pathname]);
 
-  // Handle logout
-  const handleLogout = async () => {
-    await logout();
-    router.push('/admin/login');
-  };
+  // Swipe gesture via document-level listener
+  useEffect(() => {
+    let touchStartX = 0;
+    let touchStartY = 0;
 
-  // Swipe gesture handlers
-  const onTouchStart = (e: React.TouchEvent) => {
-    setTouchEnd(null);
-    setTouchStart(e.targetTouches[0].clientX);
-  };
+    const handleTouchStart = (e: TouchEvent) => {
+      touchStartX = e.touches[0].clientX;
+      touchStartY = e.touches[0].clientY;
+    };
 
-  const onTouchMove = (e: React.TouchEvent) => {
-    setTouchEnd(e.targetTouches[0].clientX);
-  };
+    const handleTouchEnd = (e: TouchEvent) => {
+      const touchEndX = e.changedTouches[0].clientX;
+      const touchEndY = e.changedTouches[0].clientY;
 
-  const onTouchEnd = () => {
-    if (touchStart === null || touchEnd === null) return;
+      const diffX = touchEndX - touchStartX;
+      const diffY = Math.abs(touchEndY - touchStartY);
 
-    const distance = touchStart - touchEnd;
-    const isLeftSwipe = distance > minSwipeDistance;
-    const isRightSwipe = distance < -minSwipeDistance;
+      // Abaikan kalau lebih banyak scroll vertikal
+      if (diffY > Math.abs(diffX)) return;
 
-    if (isRightSwipe && touchStart < 30 && !isMobileOpen) {
-      setIsMobileOpen(true);
-    }
+      const isRightSwipe = diffX > 50;
+      const isLeftSwipe = diffX < -50;
 
-    if (isLeftSwipe && isMobileOpen) {
-      setIsMobileOpen(false);
-    }
+      // Buka sidebar: swipe kanan dari area 80px kiri layar
+      if (isRightSwipe && touchStartX < 80) {
+        setIsMobileOpen(true);
+      }
 
-    setTouchStart(null);
-    setTouchEnd(null);
-  };
+      // Tutup sidebar: swipe kiri dari mana saja
+      if (isLeftSwipe) {
+        setIsMobileOpen(false);
+      }
+    };
+
+    document.addEventListener('touchstart', handleTouchStart, { passive: true });
+    document.addEventListener('touchend', handleTouchEnd, { passive: true });
+
+    return () => {
+      document.removeEventListener('touchstart', handleTouchStart);
+      document.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, []);
 
   // Close notifications when clicking outside
   useEffect(() => {
@@ -183,12 +183,15 @@ export default function AdminLayoutClient({
     return () => document.removeEventListener('click', handleClickOutside);
   }, [showNotifications]);
 
-  // If on login page, don't show admin layout
+  const handleLogout = async () => {
+    await logout();
+    router.push('/admin/login');
+  };
+
   if (pathname === '/admin/login') {
     return <>{children}</>;
   }
 
-  // Show loading while checking auth
   if (isLoading) {
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center">
@@ -204,7 +207,6 @@ export default function AdminLayoutClient({
     );
   }
 
-  // If not authenticated, don't render admin content
   if (!isAuthenticated) {
     return null;
   }
@@ -224,8 +226,6 @@ export default function AdminLayoutClient({
               className="md:hidden fixed inset-0 bg-black/50 z-40"
               onClick={() => setIsMobileOpen(false)}
             />
-
-            {/* Mobile Sidebar */}
             <motion.aside
               initial={{ x: '-100%' }}
               animate={{ x: 0 }}
@@ -256,20 +256,13 @@ export default function AdminLayoutClient({
       </aside>
 
       {/* Main Content */}
-      <div
-        className="flex-1 md:ml-64 flex flex-col min-h-screen"
-        onTouchStart={onTouchStart}
-        onTouchMove={onTouchMove}
-        onTouchEnd={onTouchEnd}
-      >
+      <div className="flex-1 md:ml-64 flex flex-col min-h-screen">
         {/* Top Bar */}
         <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 md:px-6 sticky top-0 z-20">
-          {/* Swipe Hint Indicator */}
           {!isMobileOpen && (
             <div className="md:hidden absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-gray-200 rounded-r-full animate-pulse opacity-50" />
           )}
 
-          {/* Mobile Menu Toggle */}
           <div className="flex items-center gap-3">
             <button
               onClick={() => setIsMobileOpen(true)}
@@ -284,12 +277,9 @@ export default function AdminLayoutClient({
             </div>
           </div>
 
-          {/* Right Side */}
           <div className="flex items-center gap-2 md:gap-3">
-            {/* Install PWA Button */}
             <PWAInstallPrompt />
 
-            {/* Notification Bell */}
             <div className="relative notification-dropdown">
               <button
                 onClick={(e) => {
@@ -306,7 +296,6 @@ export default function AdminLayoutClient({
                 )}
               </button>
 
-              {/* Notification Dropdown */}
               <AnimatePresence>
                 {showNotifications && (
                   <motion.div
@@ -374,13 +363,7 @@ export default function AdminLayoutClient({
           </div>
         </header>
 
-        {/* Page Content */}
-        <main
-          className="flex-1 p-4 md:p-6 overflow-auto"
-          onTouchStart={onTouchStart}
-          onTouchMove={onTouchMove}
-          onTouchEnd={onTouchEnd}
-        >
+        <main className="flex-1 p-4 md:p-6 overflow-auto">
           {children}
         </main>
       </div>
@@ -451,7 +434,6 @@ function SidebarContent({
 }) {
   return (
     <div className="flex flex-col h-full">
-      {/* Header */}
       <div className="p-4 border-b border-gray-800">
         <Link href="/admin/dashboard" className="flex items-center gap-3 group" onClick={onClose}>
           <div className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center group-hover:bg-gray-700 transition-colors">
@@ -464,7 +446,6 @@ function SidebarContent({
         </Link>
       </div>
 
-      {/* Navigation */}
       <nav className="flex-1 py-3 overflow-y-auto">
         <div className="px-4 mb-2">
           <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Menu</span>
@@ -513,7 +494,6 @@ function SidebarContent({
         </ul>
       </nav>
 
-      {/* Footer - User Info & Logout */}
       <div className="p-3 border-t border-gray-800">
         <div className="flex items-center gap-2 p-2 rounded-lg bg-gray-800/50 mb-2">
           <div className="w-8 h-8 bg-gray-700 rounded-lg flex items-center justify-center shrink-0">
