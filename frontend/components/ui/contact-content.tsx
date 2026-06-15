@@ -96,7 +96,7 @@ export function ContactContent({ contactInfo }: ContactContentProps) {
       {/* Main Content */}
       <section className="py-10">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid lg:grid-cols-5 gap-8">
+          <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 lg:gap-8">
             {/* Contact Info - Left Side */}
             <div className="lg:col-span-2">
               <h2 className="text-lg font-bold text-navy-900 mb-5">
@@ -105,7 +105,7 @@ export function ContactContent({ contactInfo }: ContactContentProps) {
 
               <div className="space-y-4">
                 {/* Address */}
-                <div className="bg-white rounded-xl p-5 shadow-sm hover:shadow-md transition-all">
+                <div className="bg-white rounded-xl p-4 sm:p-5 shadow-sm hover:shadow-md transition-all">
                   <div className="flex items-start gap-4">
                     <div className="w-12 h-12 bg-gold-500/10 rounded-xl flex items-center justify-center shrink-0">
                       <MapPin className="w-5 h-5 text-gold-600" />
@@ -118,7 +118,7 @@ export function ContactContent({ contactInfo }: ContactContentProps) {
                 </div>
 
                 {/* Phone */}
-                <div className="bg-white rounded-xl p-5 shadow-sm hover:shadow-md transition-all">
+                <div className="bg-white rounded-xl p-4 sm:p-5 shadow-sm hover:shadow-md transition-all">
                   <div className="flex items-start gap-4">
                     <div className="w-12 h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center shrink-0">
                       <Phone className="w-5 h-5 text-emerald-600" />
@@ -140,9 +140,9 @@ export function ContactContent({ contactInfo }: ContactContentProps) {
                   href={`https://wa.me/${contactInfo.phone.replace(/[^0-9]/g, '')}`}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="block bg-emerald-500 hover:bg-emerald-600 rounded-xl p-5 shadow-sm transition-colors"
+                  className="block bg-emerald-500 hover:bg-emerald-600 rounded-xl p-4 sm:p-5 shadow-sm transition-colors"
                 >
-                  <div className="flex items-center gap-4">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3">
                     <div className="w-12 h-12 bg-white/20 rounded-xl flex items-center justify-center shrink-0 animate-pulse">
                       <MessageCircle className="w-6 h-6 text-white" />
                     </div>
@@ -150,13 +150,13 @@ export function ContactContent({ contactInfo }: ContactContentProps) {
                       <span className="text-white/80 text-sm font-medium">Chat WhatsApp</span>
                       <p className="text-white font-bold mt-0.5">Hubungi via WhatsApp</p>
                     </div>
-                    <Navigation className="w-5 h-5 text-white/70 ml-auto" />
+                    <Navigation className="w-5 h-5 text-white/70 mt-2 sm:mt-0 sm:ml-auto" />
                   </div>
                 </a>
 
                 {/* Email */}
                 {contactInfo.email && (
-                  <div className="bg-white rounded-xl p-5 shadow-sm hover:shadow-md transition-all">
+                  <div className="bg-white rounded-xl p-4 sm:p-5 shadow-sm hover:shadow-md transition-all">
                     <div className="flex items-start gap-4">
                       <div className="w-12 h-12 bg-blue-500/10 rounded-xl flex items-center justify-center shrink-0">
                         <Mail className="w-5 h-5 text-blue-600" />
@@ -175,7 +175,7 @@ export function ContactContent({ contactInfo }: ContactContentProps) {
                 )}
 
                 {/* Operating Hours */}
-                <div className="bg-white rounded-xl p-5 shadow-sm hover:shadow-md transition-all">
+                <div className="bg-white rounded-xl p-4 sm:p-5 shadow-sm hover:shadow-md transition-all">
                   <div className="flex items-start gap-4">
                     <div className="w-12 h-12 bg-purple-500/10 rounded-xl flex items-center justify-center shrink-0">
                       <Clock className="w-5 h-5 text-purple-600" />
@@ -194,7 +194,7 @@ export function ContactContent({ contactInfo }: ContactContentProps) {
                 <h3 className="text-sm font-bold text-navy-900 mb-3">
                   Lokasi Kami
                 </h3>
-                <div className="aspect-video bg-gray-200 rounded-xl overflow-hidden shadow-sm">
+                <div className="aspect-video bg-gray-200 rounded-none sm:rounded-xl overflow-hidden shadow-sm">
                   <iframe
                     src={contactInfo.maps_embed || "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3957.4!2d112.6677!3d-7.2575!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x0%3A0x0!2sJl.+Manukan+Lor+3F+RT+06+RW+12+Surabaya!5e0!3m2!1sid!2sid!4v1"}
                     className="w-full h-full border-0"

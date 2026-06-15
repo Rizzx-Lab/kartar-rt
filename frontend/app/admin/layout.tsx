@@ -97,6 +97,11 @@ export default function AdminLayout({
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
 
+  // Swipe gesture state
+  const [touchStart, setTouchStart] = useState<number | null>(null);
+  const [touchEnd, setTouchEnd] = useState<number | null>(null);
+  const minSwipeDistance = 50;
+
   // Filter nav items based on user role (superAdmin sees all, admin sees only non-superAdmin items)
   const navItems = allNavItems.filter(item => {
     if (item.superAdminOnly) {
@@ -134,6 +139,37 @@ export default function AdminLayout({
   const handleLogout = async () => {
     await logout();
     router.push('/admin/login');
+  };
+
+  // Swipe gesture handlers
+  const onTouchStart = (e: React.TouchEvent) => {
+    setTouchEnd(null);
+    setTouchStart(e.targetTouches[0].clientX);
+  };
+
+  const onTouchMove = (e: React.TouchEvent) => {
+    setTouchEnd(e.targetTouches[0].clientX);
+  };
+
+  const onTouchEnd = () => {
+    if (touchStart === null || touchEnd === null) return;
+
+    const distance = touchStart - touchEnd;
+    const isLeftSwipe = distance > minSwipeDistance;
+    const isRightSwipe = distance < -minSwipeDistance;
+
+    // Swipe dari kiri layar (0-30px) saat sidebar tertutup → buka
+    if (isRightSwipe && touchStart < 30 && !isMobileOpen) {
+      setIsMobileOpen(true);
+    }
+
+    // Swipe kiri saat sidebar terbuka → tutup
+    if (isLeftSwipe && isMobileOpen) {
+      setIsMobileOpen(false);
+    }
+
+    setTouchStart(null);
+    setTouchEnd(null);
   };
 
   // Close notifications when clicking outside
@@ -229,10 +265,20 @@ export default function AdminLayout({
         />
       </aside>
 
-      {/* Main Content */}
-      <div className="flex-1 md:ml-64 flex flex-col min-h-screen">
+      {/* Main Content - dengan swipe gesture */}
+      <div
+        className="flex-1 md:ml-64 flex flex-col min-h-screen"
+        onTouchStart={onTouchStart}
+        onTouchMove={onTouchMove}
+        onTouchEnd={onTouchEnd}
+      >
         {/* Top Bar */}
         <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 md:px-6 sticky top-0 z-20">
+          {/* Swipe Hint Indicator */}
+          {!isMobileOpen && (
+            <div className="md:hidden absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-gray-200 rounded-r-full animate-pulse opacity-50" />
+          )}
+
           {/* Mobile Menu Toggle */}
           <div className="flex items-center gap-3">
             <button
@@ -340,7 +386,12 @@ export default function AdminLayout({
         </header>
 
         {/* Page Content */}
-        <main className="flex-1 p-4 md:p-6 overflow-auto">
+        <main
+          className="flex-1 p-4 md:p-6 overflow-auto"
+          onTouchStart={onTouchStart}
+          onTouchMove={onTouchMove}
+          onTouchEnd={onTouchEnd}
+        >
           {children}
         </main>
       </div>

@@ -65,9 +65,9 @@ export function Footer() {
         </div>
 
         {/* Main Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-10">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-10">
           {/* Brand */}
-          <div className="md:col-span-2">
+          <div className="sm:col-span-2">
             <Link href="/" className="flex items-center gap-3 mb-4 group">
               <div className="w-12 h-12 bg-gradient-to-br from-gold-400 to-gold-600 rounded-lg flex items-center justify-center shadow-md logo-glow">
                 <span className="text-navy-900 font-bold text-xl">KT</span>

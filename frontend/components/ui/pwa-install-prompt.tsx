@@ -6,11 +6,24 @@ import { Download, Smartphone } from 'lucide-react';
 export function PWAInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isInstalled, setIsInstalled] = useState(false);
+  const [isServiceWorkerReady, setIsServiceWorkerReady] = useState(false);
 
   useEffect(() => {
     // Check if already installed
     if (typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches) {
       setIsInstalled(true);
+    }
+
+    // Register Service Worker
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js')
+        .then((registration) => {
+          console.log('Service Worker registered:', registration.scope);
+          setIsServiceWorkerReady(true);
+        })
+        .catch((error) => {
+          console.error('Service Worker registration failed:', error);
+        });
     }
 
     // Listen for beforeinstallprompt event

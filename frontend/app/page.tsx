@@ -97,7 +97,7 @@ export default async function HomePage() {
           {/* Hero Logo Section */}
           <div className="flex justify-center animate-fade-in-scale">
             <div className="relative">
-              <div className="relative w-72 h-72 md:w-96 md:h-96 flex items-center justify-center">
+              <div className="relative w-56 h-56 sm:w-72 sm:h-72 md:w-96 md:h-96 flex items-center justify-center">
                 {/* Outer glow ambient */}
                 <div className="absolute inset-0 rounded-full bg-amber-500/10 blur-3xl animate-pulse-glow" />
                 <div className="absolute inset-8 rounded-full bg-amber-400/15 blur-2xl" />
@@ -118,12 +118,12 @@ export default async function HomePage() {
               </div>
 
               {/* Badge Aktif Sejak 2020 */}
-              <div className="absolute -top-2 -right-2 bg-amber-500 text-navy-900 rounded-xl px-3 py-2 text-xs font-bold shadow-lg z-20 animate-bounce">
+              <div className="absolute -top-1 -right-1 sm:-top-2 sm:-right-2 bg-amber-500 text-navy-900 rounded-xl px-2 sm:px-3 py-1 sm:py-2 text-xs font-bold shadow-lg z-20 animate-bounce">
                 Aktif Sejak 2020
               </div>
 
               {/* Badge RT Bersatu */}
-              <div className="absolute -bottom-2 -left-2 bg-white text-navy-800 rounded-xl px-3 py-2 text-xs font-bold shadow-lg z-20">
+              <div className="absolute -bottom-1 -left-1 sm:-bottom-2 sm:-left-2 bg-white text-navy-800 rounded-xl px-2 sm:px-3 py-1 sm:py-2 text-xs font-bold shadow-lg z-20">
                 RT Bersatu
               </div>
             </div>
@@ -142,7 +142,7 @@ export default async function HomePage() {
       {/* Stats Section */}
       <section className="bg-white py-12 border-b border-gray-100">
         <div className="max-w-6xl mx-auto px-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6">
             {[
               { label: 'Program Kerja', value: '2+' },
               { label: 'Anggota Aktif', value: '50+' },
@@ -359,16 +359,31 @@ function TestimonialsSection() {
         </div>
       </div>
 
-      <div className="flex justify-center gap-5 px-6" style={{ maxHeight: '680px', WebkitMaskImage: 'linear-gradient(to bottom, transparent, black 15%, black 85%, transparent)', maskImage: 'linear-gradient(to bottom, transparent, black 15%, black 85%, transparent)' }}>
-        <TestimonialColumn data={column1Data} />
-        <div className="hidden md:block flex-shrink-0 w-72 overflow-hidden">
-          <div className="animate-scroll-up-slow flex flex-col gap-5">
-            {[...column2Data, ...column2Data].map((item, idx) => <TestimonialCard key={`col2-${idx}`} {...item} />)}
-          </div>
+      <div className="flex flex-col md:flex-row justify-center gap-5 px-4 md:px-6" style={{ maxHeight: '680px', WebkitMaskImage: 'linear-gradient(to bottom, transparent, black 15%, black 85%, transparent)', maskImage: 'linear-gradient(to bottom, transparent, black 15%, black 85%, transparent)' }}>
+        {/* Mobile: Single column scroll */}
+        <div className="flex md:hidden overflow-x-auto snap-x snap-mandatory gap-4 pb-4 -mx-4 px-4">
+          {[...column1Data, ...column1Data].map((item, idx) => (
+            <div key={`mobile-${idx}`} className="shrink-0 w-72 snap-center">
+              <TestimonialCard {...item} />
+            </div>
+          ))}
         </div>
-        <div className="hidden lg:block flex-shrink-0 w-72 overflow-hidden">
-          <div className="animate-scroll-up-medium flex flex-col gap-5">
-            {[...column3Data, ...column3Data].map((item, idx) => <TestimonialCard key={`col3-${idx}`} {...item} />)}
+        {/* Desktop: All columns */}
+        <div className="hidden md:flex justify-center gap-5">
+          <TestimonialColumn data={column1Data} />
+          <div className="hidden lg:flex gap-5">
+            <div className="shrink-0 w-72 overflow-hidden">
+              <div className="animate-scroll-up-slow flex flex-col gap-5">
+                {[...column2Data, ...column2Data].map((item, idx) => <TestimonialCard key={`col2-${idx}`} {...item} />)}
+              </div>
+            </div>
+            <div className="hidden xl:flex gap-5">
+              <div className="shrink-0 w-72 overflow-hidden">
+                <div className="animate-scroll-up-medium flex flex-col gap-5">
+                  {[...column3Data, ...column3Data].map((item, idx) => <TestimonialCard key={`col3-${idx}`} {...item} />)}
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>

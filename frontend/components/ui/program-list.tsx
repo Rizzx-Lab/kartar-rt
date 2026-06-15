@@ -63,9 +63,9 @@ export function ProgramList({ programs }: ProgramListProps) {
   return (
     <>
       {/* Filter */}
-      <section className="bg-white py-5 border-b border-gray-100 sticky top-0 z-10 backdrop-blur-lg">
+      <section className="bg-white py-4 sm:py-5 border-b border-gray-100 sticky top-16 md:top-0 z-10 backdrop-blur-lg">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <span className="text-sm font-semibold text-gray-700 mr-1 flex items-center gap-2">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
@@ -84,7 +84,7 @@ export function ProgramList({ programs }: ProgramListProps) {
                 <button
                   key={filter.value}
                   onClick={() => setSelectedFrequency(filter.value)}
-                  className={`px-5 py-2.5 text-sm font-medium rounded-lg transition-all duration-200 ${
+                  className={`px-3 sm:px-5 py-2 text-sm font-medium rounded-lg transition-all duration-200 ${
                     isActive
                       ? 'bg-navy-900 text-white shadow-md'
                       : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
@@ -102,7 +102,7 @@ export function ProgramList({ programs }: ProgramListProps) {
       <section className="py-10 bg-gray-50">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           {filteredPrograms.length > 0 ? (
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
               {filteredPrograms.map((program) => {
                 const freq = frequencyConfig[program.frequency];
                 const Icon = freq.icon;

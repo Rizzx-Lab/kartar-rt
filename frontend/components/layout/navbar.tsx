@@ -208,7 +208,7 @@ export function Navbar() {
       </motion.div>
 
       {/* Mobile padding for bottom navbar */}
-      <div className="h-0 md:hidden" />
+      <div className="h-20 md:hidden" />
     </>
   );
 }

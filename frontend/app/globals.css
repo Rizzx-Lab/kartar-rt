@@ -17,6 +17,7 @@
     scroll-behavior: smooth;
     margin: 0;
     padding: 0;
+    -webkit-overflow-scrolling: touch;
   }
 
   body {
@@ -24,6 +25,7 @@
     margin: 0;
     padding: 0;
     min-height: 100vh;
+    overflow-x: hidden;
   }
 }
 
