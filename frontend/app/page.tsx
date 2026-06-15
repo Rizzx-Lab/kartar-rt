@@ -131,7 +131,7 @@ export default async function HomePage() {
         </div>
 
         {/* Scroll indicator */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 animate-fade-in-up" style={{ animationDelay: '1.5s' }}>
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex-col items-center gap-2 animate-fade-in-up hidden md:flex" style={{ animationDelay: '1.5s' }}>
           <span className="text-gray-400 text-xs">Scroll ke bawah</span>
           <div className="w-5 h-8 border-2 border-gray-500 rounded-full flex items-start justify-center p-1">
             <div className="w-1 h-2 bg-amber-400 rounded-full animate-bounce-indicator" />
@@ -306,7 +306,7 @@ export default async function HomePage() {
       {settings.show_testimonials && <TestimonialsSection />}
 
       {/* CTA Section */}
-      <section className="py-12 bg-navy-900">
+      <section className="py-12 bg-navy-900">git 
         <div className="max-w-4xl mx-auto px-6 text-center">
           <h2 className="text-2xl md:text-3xl font-bold text-white mb-4">
             Tertarik untuk Bergabung?
