@@ -70,10 +70,11 @@ export const metadata: Metadata = {
       'max-snippet': -1,
     },
   },
-  icons: {
+icons: {
     icon: '/favicon.ico',
     apple: '/apple-touch-icon.png',
- },
+  },
+  manifest: '/admin/manifest.json',
 };
 
 export default function RootLayout({
