@@ -57,49 +57,31 @@ export default function AdminUsersPage() {
 
   const validateForm = (): boolean => {
     const newErrors: Partial<UserFormData> = {};
-    
-    if (!formData.name.trim()) {
-      newErrors.name = 'Nama harus diisi';
-    }
-    if (!formData.email.trim()) {
-      newErrors.email = 'Email harus diisi';
-    } else if (!formData.email.includes('@')) {
-      newErrors.email = 'Format email tidak valid';
-    }
-    if (!editingUser && !formData.password) {
-      newErrors.password = 'Password harus diisi untuk user baru';
-    }
-    if (formData.password && formData.password.length < 6) {
-      newErrors.password = 'Password minimal 6 karakter';
-    }
-
+    if (!formData.name.trim()) newErrors.name = 'Nama harus diisi';
+    if (!formData.email.trim()) newErrors.email = 'Email harus diisi';
+    else if (!formData.email.includes('@')) newErrors.email = 'Format email tidak valid';
+    if (!editingUser && !formData.password) newErrors.password = 'Password harus diisi untuk user baru';
+    if (formData.password && formData.password.length < 6) newErrors.password = 'Password minimal 6 karakter';
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
-    if (!validateForm()) {
-      return;
-    }
-
+    if (!validateForm()) return;
     setIsSubmitting(true);
-
     const payload = {
       name: formData.name,
       email: formData.email,
       role: formData.role,
       ...(formData.password && { password: formData.password }),
     };
-
     let response;
     if (editingUser) {
       response = await updateUser(editingUser.id, payload);
     } else {
       response = await createUser(payload);
     }
-
     if (response.success) {
       setShowModal(false);
       fetchUsers();
@@ -165,45 +147,37 @@ export default function AdminUsersPage() {
             ))}
           </div>
         ) : filtered.length > 0 ? (
-          <table className="w-full">
-            <thead className="bg-gray-50">
-              <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">User</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Email</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Role</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Bergabung</th>
-                <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase">Aksi</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-200">
+          <>
+            {/* Mobile Card List - hanya tampil di mobile */}
+            <div className="md:hidden divide-y divide-gray-100">
               {filtered.map((user) => (
-                <tr key={user.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-6 py-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-navy-800 rounded-full flex items-center justify-center text-white font-medium text-sm">
-                        {user.name.charAt(0).toUpperCase()}
-                      </div>
-                      <span className="font-medium text-navy-800">{user.name}</span>
+                <div key={user.id} className="p-4 flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
+                    <div className="w-10 h-10 bg-navy-800 rounded-full flex items-center justify-center text-white font-medium text-sm shrink-0">
+                      {user.name.charAt(0).toUpperCase()}
                     </div>
-                  </td>
-                  <td className="px-6 py-4 text-gray-600 text-sm">{user.email}</td>
-                  <td className="px-6 py-4">
-                    <span className={`px-3 py-1 text-xs font-medium rounded-full ${
-                      user.role === 'super_admin' 
-                        ? 'bg-purple-100 text-purple-700' 
-                        : 'bg-blue-100 text-blue-700'
-                    }`}>
-                      {user.role === 'super_admin' ? 'Super Admin' : 'Admin'}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-gray-500 text-sm">
-                    {new Date(user.created_at).toLocaleDateString('id-ID', {
-                      day: 'numeric',
-                      month: 'short',
-                      year: 'numeric',
-                    })}
-                  </td>
-                  <td className="px-6 py-4 text-right">
+                    <div className="min-w-0">
+                      <p className="font-medium text-navy-800 text-sm truncate">{user.name}</p>
+                      <p className="text-gray-500 text-xs truncate">{user.email}</p>
+                      <div className="flex items-center gap-2 mt-1">
+                        <span className={`px-2 py-0.5 text-xs font-medium rounded-full ${
+                          user.role === 'super_admin'
+                            ? 'bg-purple-100 text-purple-700'
+                            : 'bg-blue-100 text-blue-700'
+                        }`}>
+                          {user.role === 'super_admin' ? 'Super Admin' : 'Admin'}
+                        </span>
+                        <span className="text-gray-400 text-xs">
+                          {new Date(user.created_at).toLocaleDateString('id-ID', {
+                            day: 'numeric',
+                            month: 'short',
+                            year: 'numeric',
+                          })}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1 shrink-0">
                     <button
                       onClick={() => openEditModal(user)}
                       className="p-2 text-gold-600 hover:bg-gold-50 rounded-lg transition-colors"
@@ -222,11 +196,75 @@ export default function AdminUsersPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m-7-3V5a2 2 0 012-2h3.5" />
                       </svg>
                     </button>
-                  </td>
-                </tr>
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
+            </div>
+
+            {/* Desktop Table - hanya tampil di desktop */}
+            <table className="hidden md:table w-full">
+              <thead className="bg-gray-50">
+                <tr>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">User</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Email</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Role</th>
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-700 uppercase">Bergabung</th>
+                  <th className="px-6 py-3 text-right text-xs font-medium text-gray-700 uppercase">Aksi</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-gray-200">
+                {filtered.map((user) => (
+                  <tr key={user.id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-6 py-4">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-navy-800 rounded-full flex items-center justify-center text-white font-medium text-sm">
+                          {user.name.charAt(0).toUpperCase()}
+                        </div>
+                        <span className="font-medium text-navy-800">{user.name}</span>
+                      </div>
+                    </td>
+                    <td className="px-6 py-4 text-gray-600 text-sm">{user.email}</td>
+                    <td className="px-6 py-4">
+                      <span className={`px-3 py-1 text-xs font-medium rounded-full ${
+                        user.role === 'super_admin'
+                          ? 'bg-purple-100 text-purple-700'
+                          : 'bg-blue-100 text-blue-700'
+                      }`}>
+                        {user.role === 'super_admin' ? 'Super Admin' : 'Admin'}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-gray-500 text-sm">
+                      {new Date(user.created_at).toLocaleDateString('id-ID', {
+                        day: 'numeric',
+                        month: 'short',
+                        year: 'numeric',
+                      })}
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <button
+                        onClick={() => openEditModal(user)}
+                        className="p-2 text-gold-600 hover:bg-gold-50 rounded-lg transition-colors"
+                        title="Edit user"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                        </svg>
+                      </button>
+                      <button
+                        onClick={() => handleDelete(user.id)}
+                        className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                        title="Hapus user"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m-7-3V5a2 2 0 012-2h3.5" />
+                        </svg>
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
         ) : (
           <div className="p-12 text-center">
             <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -246,8 +284,8 @@ export default function AdminUsersPage() {
               <h3 className="text-lg font-bold text-navy-800">
                 {editingUser ? 'Edit User' : 'Tambah User Baru'}
               </h3>
-              <button 
-                onClick={() => setShowModal(false)} 
+              <button
+                onClick={() => setShowModal(false)}
                 className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
