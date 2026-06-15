@@ -27,10 +27,11 @@ export function PWAInstallPrompt() {
     }
 
     // Listen for beforeinstallprompt event
-    const handleBeforeInstallPrompt = (e: Event) => {
-      e.preventDefault();
-      setDeferredPrompt(e);
-    };
+  const handleBeforeInstallPrompt = (e: Event) => {
+    e.preventDefault();
+    console.log('✅ beforeinstallprompt fired! PWA can be installed.');
+    setDeferredPrompt(e);
+  };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
@@ -47,9 +48,10 @@ export function PWAInstallPrompt() {
     };
   }, []);
 
-  const handleInstall = async () => {
-    if (deferredPrompt) {
-      deferredPrompt.prompt();
+const handleInstall = async () => {
+  console.log('Install clicked, deferredPrompt:', deferredPrompt ? 'AVAILABLE ✅' : 'NULL ❌');
+  if (deferredPrompt) {
+    deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
       if (outcome === 'accepted') {
         setDeferredPrompt(null);
