@@ -49,20 +49,7 @@ export function Footer() {
       <div className="absolute top-0 right-0 w-96 h-96 bg-gold-500/10 rounded-full blur-3xl footer-glow-1" />
       <div className="absolute bottom-0 left-0 w-[500px] h-[500px] bg-navy-500/20 rounded-full blur-3xl footer-glow-2" />
 
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-14 relative">
-        {/* Navigation Links */}
-        <div className="flex flex-wrap justify-center gap-6 md:gap-10 mb-10 pb-6 border-b border-white/10">
-          {footerLinks.menu.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="text-gray-400 text-sm hover:text-gold-400 transition-colors duration-200 relative group"
-            >
-              {link.label}
-              <span className="absolute -bottom-1 left-0 w-0 h-px bg-gold-400 transition-all duration-300 group-hover:w-full" />
-            </Link>
-          ))}
-        </div>
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-10 pb-14 relative">
 
         {/* Main Grid */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-10">

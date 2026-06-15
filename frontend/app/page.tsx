@@ -184,7 +184,7 @@ export default async function HomePage() {
               const freq = freqConfig[program.frequency] || freqConfig.irregular;
 
               return (
-                <div key={program.id} className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 h-full flex flex-col group">
+                <Link key={program.id} href={`/kegiatan/${program.slug}`} className="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 h-full flex flex-col group">
                   {/* Image Area */}
                   <div className="relative h-40 overflow-hidden">
                     {hasImage ? (
@@ -239,7 +239,7 @@ export default async function HomePage() {
                       </span>
                     </div>
                   </div>
-                </div>
+                </Link>
               );
             })}
           </div>
@@ -314,7 +314,7 @@ export default async function HomePage() {
           <p className="text-gray-400 mb-6">
             Jangan ragu untuk menghubungi kami. Kami selalu terbuka untuk kolaborasi dan partisipasi warga.
           </p>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
+          <div className="flex flex-row gap-4 justify-center">
             <Link href="/kontak" className="inline-flex items-center justify-center gap-2 px-6 py-2.5 bg-gold-500 hover:bg-gold-600 text-navy-900 font-semibold rounded-full transition-colors shadow-lg shadow-gold-500/30">
               Hubungi Kami
             </Link>
@@ -360,16 +360,9 @@ function TestimonialsSection() {
       </div>
 
       <div className="flex flex-col md:flex-row justify-center gap-5 px-4 md:px-6" style={{ maxHeight: '680px', WebkitMaskImage: 'linear-gradient(to bottom, transparent, black 15%, black 85%, transparent)', maskImage: 'linear-gradient(to bottom, transparent, black 15%, black 85%, transparent)' }}>
-        {/* Mobile: Single column scroll */}
-        <div className="flex md:hidden overflow-x-auto snap-x snap-mandatory gap-4 pb-4 -mx-4 px-4">
-          {[...column1Data, ...column1Data].map((item, idx) => (
-            <div key={`mobile-${idx}`} className="shrink-0 w-72 snap-center">
-              <TestimonialCard {...item} />
-            </div>
-          ))}
-        </div>
-        {/* Desktop: All columns */}
-        <div className="hidden md:flex justify-center gap-5">
+
+          {/* All screens: Auto scroll columns */}
+          <div className="flex justify-center gap-5">
           <TestimonialColumn data={column1Data} />
           <div className="hidden lg:flex gap-5">
             <div className="shrink-0 w-72 overflow-hidden">
@@ -391,9 +384,9 @@ function TestimonialsSection() {
       {/* Google Review CTA */}
       <div className="max-w-6xl mx-auto px-6 mt-14">
         <div className="bg-navy-900 rounded-2xl p-8">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+          <div className="flex flex-col items-center text-center md:flex-row md:text-left justify-between gap-6">
             <div className="flex items-center gap-5">
-              <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center">
+             <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center flex-shrink-0">
                 <svg className="w-8 h-8" viewBox="0 0 24 24" fill="none">
                   <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
                   <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
@@ -418,7 +411,7 @@ function TestimonialsSection() {
               href="https://search.google.com/local/writereview?placeid=YOUR_PLACE_ID"
               target="_blank"
               rel="noopener noreferrer"
-              className="flex-shrink-0 bg-amber-500 text-navy-900 px-6 py-3 rounded-xl font-bold text-sm hover:bg-amber-400 transition-all flex items-center gap-2 shadow-lg shadow-amber-500/30"
+              className="w-full md:w-auto flex-shrink-0 bg-amber-500 text-navy-900 px-6 py-3 rounded-xl font-bold text-sm hover:bg-amber-400 transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-500/30"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>

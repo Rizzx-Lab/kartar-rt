@@ -64,7 +64,7 @@ export default function GalleryTabs({ recentPhotos, archives, autoScroll = true,
       {/* Main Content - Sticky Context Wrapper */}
       <div className="bg-white">
         {/* Sticky Tabs - inline style untuk fix */}
-        <div className="bg-white border-b border-gray-100 shadow-sm sticky top-0 z-30">
+        <div className="bg-white border-b border-gray-100 shadow-sm">
           <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex items-center gap-2 py-3 -mx-4 px-4 sm:mx-0 sm:px-0">
               <button
