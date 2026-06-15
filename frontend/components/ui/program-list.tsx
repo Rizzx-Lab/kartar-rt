@@ -62,10 +62,11 @@ export function ProgramList({ programs }: ProgramListProps) {
 
   return (
     <>
-      {/* Filter */}
-      <section className="bg-white py-4 sm:py-5 border-b border-gray-100 sticky top-16 md:top-0 z-10 backdrop-blur-lg">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+      {/* Filter - Sticky Context */}
+      <div className="bg-white border-b border-gray-100 sticky top-16 md:top-0 z-10 shadow-sm">
+        <div className="py-4 sm:py-5">
+          <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
             <span className="text-sm font-semibold text-gray-700 mr-1 flex items-center gap-2">
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
@@ -96,7 +97,7 @@ export function ProgramList({ programs }: ProgramListProps) {
             })}
           </div>
         </div>
-      </section>
+      </div>
 
       {/* Content */}
       <section className="py-10 bg-gray-50">
