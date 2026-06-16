@@ -162,7 +162,7 @@ class PublicApiController extends Controller
                 ->get()
                 ->map(fn($p) => [
                     'id' => $p->id,
-                    'src' => asset('storage/' . $p->file_path),
+                    'src' => $p->file_path,
                     'alt' => $p->caption ?? 'Gallery photo',
                     'caption' => $p->caption,
                     'gallery' => $p->gallery ? [
@@ -198,7 +198,7 @@ class PublicApiController extends Controller
                     'galleries_count' => $galleriesInDate->count(),
                     'photos' => $galleriesInDate->flatMap(fn($g) => $g->photos->take(6)->map(fn($p) => [
                         'id' => $p->id,
-                        'src' => asset('storage/' . $p->file_path),
+                        'src' => $p->file_path,
                         'alt' => $p->caption ?? 'Gallery photo',
                         'caption' => $p->caption,
                     ])),
@@ -244,7 +244,7 @@ class PublicApiController extends Controller
                 'created_at' => $g->created_at,
                 'photos' => $g->photos->map(fn($p) => [
                     'id' => $p->id,
-                    'src' => asset('storage/' . $p->file_path),
+                    'src' => $p->file_path,
                     'alt' => $p->caption ?? 'Gallery photo',
                 ]),
             ]),
@@ -276,7 +276,7 @@ class PublicApiController extends Controller
                 'created_at' => $gallery->created_at,
                 'photos' => $gallery->photos->map(fn($p) => [
                     'id' => $p->id,
-                    'src' => asset('storage/' . $p->file_path),
+                    'src' => $p->file_path,
                     'alt' => $p->caption ?? 'Gallery photo',
                     'caption' => $p->caption,
                     'order' => $p->order,
@@ -302,16 +302,14 @@ class PublicApiController extends Controller
                     'id' => $m->id,
                     'name' => $m->name,
                     'position' => $m->position,
-                    'photo' => $m->photo ? asset('storage/' . $m->photo) : null,
+                    'photo' => $m->photo,
                     'order' => $m->order,
                 ]);
 
             return [
                 'members' => $members,
                 'organization_name' => $settings['about_title'] ?? 'Karang Taruna Armalo Eluf',
-                'about_image' => !empty($settings['about_image']) && Storage::disk('public')->exists($settings['about_image'])
-                    ? asset('storage/' . $settings['about_image'])
-                    : null,
+                'about_image' => $settings['about_image'] ?? null,
                 'about_description' => $settings['about_description'] ?? null,
                 'about_quote' => $settings['about_quote'] ?? null,
                 'location' => $settings['address'] ?? 'RT 06 RW 12, Surabaya',
@@ -428,7 +426,7 @@ class PublicApiController extends Controller
             'slug' => $program->slug,
             'description' => $program->description,
             'frequency' => $program->frequency,
-            'cover_image' => $program->cover_image ? asset('storage/' . $program->cover_image) : null,
+            'cover_image' => $program->cover_image,
             'order' => $program->order,
         ];
 
