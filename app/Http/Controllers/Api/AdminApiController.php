@@ -3,12 +3,15 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Traits\UploadsToCloudinary;
 use App\Models\{Program, ProgramSession, Announcement, Gallery, GalleryPhoto, Contact, User, OrganizationMember, SiteSetting};
 use Illuminate\Http\{Request, JsonResponse};
 use Illuminate\Support\Facades\{Storage, File, Cache};
 
 class AdminApiController extends Controller
 {
+    use UploadsToCloudinary;
+
     // ==========================================
     // PROGRAMS
     // ==========================================
@@ -32,8 +35,7 @@ class AdminApiController extends Controller
         $data['is_active'] = filter_var($request->input('is_active'), FILTER_VALIDATE_BOOLEAN) ?: true;
 
         if ($request->hasFile('cover_image')) {
-            $path = $request->file('cover_image')->store('programs', 'public');
-            $data['cover_image'] = $path;
+            $data['cover_image'] = $this->uploadToCloudinary($request->file('cover_image'), 'kartar/programs');
         }
 
         $data['slug'] = \Str::slug($request->name);
@@ -62,11 +64,10 @@ class AdminApiController extends Controller
         }
 
         if ($request->hasFile('cover_image')) {
-            if ($program->cover_image && Storage::disk('public')->exists($program->cover_image)) {
-                Storage::disk('public')->delete($program->cover_image);
+            if ($program->cover_image) {
+                $this->deleteFromCloudinary($program->cover_image);
             }
-            $path = $request->file('cover_image')->store('programs', 'public');
-            $data['cover_image'] = $path;
+            $data['cover_image'] = $this->uploadToCloudinary($request->file('cover_image'), 'kartar/programs');
         }
 
         $data['slug'] = \Str::slug($request->name);
@@ -81,8 +82,8 @@ class AdminApiController extends Controller
         $program = Program::findOrFail($id);
 
         // Delete cover image
-        if ($program->cover_image && Storage::disk('public')->exists($program->cover_image)) {
-            Storage::disk('public')->delete($program->cover_image);
+        if ($program->cover_image) {
+            $this->deleteFromCloudinary($program->cover_image);
         }
 
         $program->delete();
@@ -267,7 +268,7 @@ class AdminApiController extends Controller
                     // Only include first photo for cover, not all photos
                     'photos' => $gallery->photos->take(1)->map(fn($p) => [
                         'id' => $p->id,
-                        'file_path' => asset('storage/' . $p->file_path),
+                        'file_path' => $p->file_path,
                         'caption' => $p->caption,
                     ])->values()->all(),
                 ];
@@ -324,8 +325,8 @@ class AdminApiController extends Controller
 
         // Delete all photos
         foreach ($gallery->photos as $photo) {
-            if (Storage::disk('public')->exists($photo->file_path)) {
-                Storage::disk('public')->delete($photo->file_path);
+            if ($photo->file_path) {
+                $this->deleteFromCloudinary($photo->file_path);
             }
         }
 
@@ -348,7 +349,7 @@ class AdminApiController extends Controller
         $captions = $request->input('captions', []);
 
         foreach ($files as $index => $file) {
-            $path = $file->store('galleries', 'public');
+            $path = $this->uploadToCloudinary($file, 'kartar/galleries');
             $photos[] = $gallery->photos()->create([
                 'file_path' => $path,
                 'caption' => $captions[$index] ?? null,
@@ -366,7 +367,7 @@ class AdminApiController extends Controller
         // Format photos with full URLs
         $photos = $gallery->photos->map(fn($p) => [
             'id' => $p->id,
-            'file_path' => asset('storage/' . $p->file_path),
+            'file_path' => $p->file_path,
             'caption' => $p->caption,
             'order' => $p->order,
         ]);
@@ -378,8 +379,8 @@ class AdminApiController extends Controller
     {
         $photo = GalleryPhoto::findOrFail($id);
 
-        if (Storage::disk('public')->exists($photo->file_path)) {
-            Storage::disk('public')->delete($photo->file_path);
+        if ($photo->file_path) {
+            $this->deleteFromCloudinary($photo->file_path);
         }
 
         $photo->delete();
@@ -503,7 +504,7 @@ class AdminApiController extends Controller
         ]);
 
         if ($request->hasFile('photo')) {
-            $data['photo'] = $request->file('photo')->store('members', 'public');
+            $data['photo'] = $this->uploadToCloudinary($request->file('photo'), 'kartar/members');
         }
 
         // Handle is_active separately (FormData sends strings "true"/"false")
@@ -526,10 +527,10 @@ class AdminApiController extends Controller
         ]);
 
         if ($request->hasFile('photo')) {
-            if ($member->photo && Storage::disk('public')->exists($member->photo)) {
-                Storage::disk('public')->delete($member->photo);
+            if ($member->photo) {
+                $this->deleteFromCloudinary($member->photo);
             }
-            $data['photo'] = $request->file('photo')->store('members', 'public');
+            $data['photo'] = $this->uploadToCloudinary($request->file('photo'), 'kartar/members');
         }
 
         // Handle is_active separately (FormData sends strings "true"/"false")
@@ -544,8 +545,8 @@ class AdminApiController extends Controller
     {
         $member = OrganizationMember::findOrFail($id);
 
-        if ($member->photo && Storage::disk('public')->exists($member->photo)) {
-            Storage::disk('public')->delete($member->photo);
+        if ($member->photo) {
+            $this->deleteFromCloudinary($member->photo);
         }
 
         $member->delete();
@@ -579,12 +580,8 @@ class AdminApiController extends Controller
             $settings['gallery_scroll_speed'] = 30; // Default 30 seconds
         }
 
-        // Return full URL for image fields
-        if (!empty($settings['about_image']) && Storage::disk('public')->exists($settings['about_image'])) {
-            $settings['about_image'] = asset('storage/' . $settings['about_image']);
-        } else {
-            $settings['about_image'] = null;
-        }
+        // Return full URL for image fields (Cloudinary URLs are already absolute)
+        $settings['about_image'] = $settings['about_image'] ?? null;
 
         return response()->json(['success' => true, 'data' => $settings]);
     }
@@ -620,13 +617,13 @@ class AdminApiController extends Controller
         if ($request->hasFile('about_image')) {
             // Delete old image if exists
             $oldSetting = SiteSetting::where('key', 'about_image')->first();
-            if ($oldSetting && $oldSetting->value && Storage::disk('public')->exists($oldSetting->value)) {
-                Storage::disk('public')->delete($oldSetting->value);
+            if ($oldSetting && $oldSetting->value) {
+                $this->deleteFromCloudinary($oldSetting->value);
             }
-            $aboutImagePath = $request->file('about_image')->store('settings', 'public');
+            $aboutImageUrl = $this->uploadToCloudinary($request->file('about_image'), 'kartar/settings');
             SiteSetting::updateOrCreate(
                 ['key' => 'about_image'],
-                ['value' => $aboutImagePath, 'type' => 'image']
+                ['value' => $aboutImageUrl, 'type' => 'image']
             );
         }
 
