@@ -33,6 +33,18 @@ const getImageUrl = (path: string | null): string | null => {
   return `http://localhost:8000/storage/${path}`;
 };
 
+async function triggerRevalidate() {
+  try {
+    await fetch('/api/revalidate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ path: '/galeri', tag: 'galleries' }),
+    });
+  } catch (revalidateError) {
+    console.log('Revalidation failed, page will update in next ISR cycle');
+  }
+}
+
 export default function AdminGalleriesPage() {
   const [galleries, setGalleries] = useState<AdminGallery[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -151,6 +163,7 @@ export default function AdminGalleriesPage() {
     if (response.success) {
       setShowModal(false);
       fetchGalleries();
+      await triggerRevalidate();
     } else {
       alert(response.message || 'Terjadi kesalahan');
     }
@@ -164,6 +177,7 @@ export default function AdminGalleriesPage() {
         if (viewingGallery?.id === id) {
           closeViewModal();
         }
+        await triggerRevalidate();
       } else {
         alert(response.message || 'Gagal menghapus');
       }
@@ -189,6 +203,7 @@ export default function AdminGalleriesPage() {
       setSelectedFiles([]);
       await fetchGalleryPhotos(viewingGallery.id);
       fetchGalleries();
+      await triggerRevalidate();
     } else {
       alert(response.message || 'Gagal upload foto');
     }
@@ -201,6 +216,7 @@ export default function AdminGalleriesPage() {
       if (response.success) {
         setGalleryPhotos(prev => prev.filter(p => p.id !== photoId));
         fetchGalleries();
+        await triggerRevalidate();
       }
     }
   };
