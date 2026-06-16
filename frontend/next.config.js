@@ -17,13 +17,24 @@ const withPWA = require('next-pwa')({
         },
       },
     },
-    {
+{
       urlPattern: /^https:\/\/armaloeluf\.my\.id\/storage\//,
       handler: 'CacheFirst',
       options: {
         cacheName: 'media-cache',
         expiration: {
           maxEntries: 50,
+          maxAgeSeconds: 60 * 60 * 24 * 30, // 30 hari
+        },
+      },
+    },
+    {
+      urlPattern: /^https:\/\/res\.cloudinary\.com\//,
+      handler: 'CacheFirst',
+      options: {
+        cacheName: 'cloudinary-media-cache',
+        expiration: {
+          maxEntries: 100,
           maxAgeSeconds: 60 * 60 * 24 * 30, // 30 hari
         },
       },
@@ -58,6 +69,10 @@ const nextConfig = withPWA({
       {
         protocol: 'https',
         hostname: 'armaloeluf.my.id',
+      },
+            {
+        protocol: 'https',
+        hostname: 'res.cloudinary.com',
       },
     ],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
