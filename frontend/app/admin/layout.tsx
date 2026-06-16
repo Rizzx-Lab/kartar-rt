@@ -2,7 +2,7 @@ import type { Metadata } from 'next';
 import AdminLayoutClient from './admin-layout-client';
 
 export const metadata: Metadata = {
-  manifest: '/manifest.json',
+  manifest: '/admin/manifest.json',
 };
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
