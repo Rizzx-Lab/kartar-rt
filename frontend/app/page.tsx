@@ -18,7 +18,7 @@ const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/a
 async function fetchFromApi<T>(endpoint: string): Promise<T | null> {
   try {
     const res = await fetch(`${API_BASE_URL}${endpoint}`, {
-      next: { revalidate: 60 },
+      next: { revalidate: 60, tags: ['home'] },
       headers: { 'Accept': 'application/json' },
     });
     if (!res.ok) return null;
