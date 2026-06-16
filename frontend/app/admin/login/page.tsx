@@ -60,7 +60,7 @@ export default function AdminLoginPage() {
             className="relative inline-block"
           >
             <div className="w-20 h-20 bg-linear-to-br from-gold-400 to-gold-600 rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-xl shadow-gold-500/30">
-              <span className="text-navy-900 font-bold text-3xl">KT</span>
+              <span className="text-white font-bold text-3xl" style={{ color: '#ffffff' }}>AE</span>
             </div>
             <div className="absolute -top-2 -right-2 w-6 h-6 bg-green-500 rounded-full border-2 border-navy-900">
               <div className="w-full h-full bg-green-400 rounded-full animate-ping opacity-75" />
