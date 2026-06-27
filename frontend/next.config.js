@@ -6,6 +6,9 @@ const withPWA = require('next-pwa')({
   disable: process.env.NODE_ENV === 'development',
   customWorkerDir: 'worker',
   publicExcludes: ['!icons/**/*', '!manifest.json'],
+  exclude: [
+    /app-build-manifest\.json$/,
+  ],
   runtimeCaching: [
     {
       urlPattern: /^\/admin\//,
