@@ -6,9 +6,11 @@ const withPWA = require('next-pwa')({
   disable: process.env.NODE_ENV === 'development',
   customWorkerDir: 'worker',
   publicExcludes: ['!icons/**/*', '!manifest.json'],
-  exclude: [
+  buildExcludes: [
     /app-build-manifest\.json$/,
     /\/_next\/server\//,
+    /react-loadable-manifest\.json$/,
+    /build-manifest\.json$/,
   ],
   runtimeCaching: [
     {
