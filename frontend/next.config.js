@@ -8,6 +8,7 @@ const withPWA = require('next-pwa')({
   publicExcludes: ['!icons/**/*', '!manifest.json'],
   exclude: [
     /app-build-manifest\.json$/,
+    /\/_next\/server\//,
   ],
   runtimeCaching: [
     {
