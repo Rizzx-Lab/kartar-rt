@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\PublicApiController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AdminApiController;
+use App\Http\Controllers\Api\PushSubscriptionController;
 
 /*
 |--------------------------------------------------------------------------
@@ -36,6 +37,11 @@ Route::prefix('v1')->name('api.')->group(function () {
     Route::get('/contact', [PublicApiController::class, 'contactInfo'])->name('contact.info');
     Route::get('/settings', [PublicApiController::class, 'settings'])->name('settings');
     Route::post('/contact', [PublicApiController::class, 'submitContact'])->name('contact.submit');
+
+    // ========================
+    // PUSH SUBSCRIPTIONS
+    // ========================
+    Route::get('/push/vapid-public-key', [PushSubscriptionController::class, 'vapidPublicKey'])->name('push.vapid-public-key');
 
     // ========================
     // ADMIN RESOURCES (Auth required)
@@ -76,6 +82,10 @@ Route::prefix('v1')->name('api.')->group(function () {
         Route::get('/admin/contacts', [AdminApiController::class, 'contacts'])->name('admin.contacts.index');
         Route::patch('/admin/contacts/{id}/read', [AdminApiController::class, 'markContactRead'])->name('admin.contacts.read');
         Route::delete('/admin/contacts/{id}', [AdminApiController::class, 'contactDestroy'])->name('admin.contacts.destroy');
+
+        // Push Subscriptions
+        Route::post('/push/subscribe', [PushSubscriptionController::class, 'subscribe'])->name('push.subscribe');
+        Route::delete('/push/unsubscribe', [PushSubscriptionController::class, 'unsubscribe'])->name('push.unsubscribe');
 
         // Users (Super Admin only)
         Route::middleware(['superadmin'])->group(function () {

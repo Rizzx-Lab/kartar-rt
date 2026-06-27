@@ -311,3 +311,57 @@ export async function updateSettings(data: any, hasFile = false) {
 export async function getWebsiteAnalytics() {
   return { success: true, data: null, message: 'Endpoint analytics belum tersedia' };
 }
+
+// ========================
+// PUSH NOTIFICATIONS
+// ========================
+
+// Fetch the VAPID public key from the backend (never hardcoded)
+export async function getPushVapidKey(): Promise<string | null> {
+  try {
+    const response = await fetch(`${API_URL}/push/vapid-public-key`);
+    const data = await response.json();
+    return data?.data?.publicKey ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// Subscribe to push notifications
+export async function subscribePush(subscription: PushSubscriptionJSON): Promise<boolean> {
+  try {
+    const result = await adminFetch('/push/subscribe', {
+      method: 'POST',
+      body: JSON.stringify(subscription),
+    });
+    return result.success;
+  } catch {
+    return false;
+  }
+}
+
+// Unsubscribe from push notifications
+export async function unsubscribePush(): Promise<boolean> {
+  try {
+    // Get existing subscription to get the endpoint
+    const registration = await navigator.serviceWorker?.ready;
+    if (!registration) return false;
+
+    const subscription = await registration.pushManager.getSubscription();
+    if (!subscription) return true; // Already unsubscribed
+
+    const endpoint = subscription.endpoint;
+
+    const result = await adminFetch('/push/unsubscribe', {
+      method: 'DELETE',
+      body: JSON.stringify({ endpoint }),
+    });
+
+    // Also unsubscribe from browser push manager
+    await subscription.unsubscribe();
+
+    return result.success;
+  } catch {
+    return false;
+  }
+}

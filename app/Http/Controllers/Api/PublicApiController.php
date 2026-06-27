@@ -3,7 +3,8 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\{Announcement, Program, ProgramSession, Gallery, GalleryPhoto, OrganizationMember, SiteSetting, Contact};
+use App\Models\{Announcement, Program, ProgramSession, Gallery, GalleryPhoto, OrganizationMember, SiteSetting, Contact, User};
+use App\Notifications\NewContactMessageNotification;
 use Illuminate\Http\{Request, JsonResponse};
 use Illuminate\Support\Facades\{Cache, Storage};
 
@@ -387,7 +388,20 @@ class PublicApiController extends Controller
             'message' => 'required|string',
         ]);
 
-        Contact::create($validated);
+        $contact = Contact::create($validated);
+
+        // Notify all admins (both admin and super_admin roles)
+        $admins = User::where(function ($q) {
+            $q->where('role', 'admin')->orWhere('role', 'super_admin');
+        })->get();
+
+        foreach ($admins as $admin) {
+            $admin->notify(new NewContactMessageNotification(
+                contactName: $contact->name,
+                message: $contact->message,
+                contactId: $contact->id
+            ));
+        }
 
         return response()->json([
             'success' => true,

@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getNotifications } from '@/lib/admin-api';
+import { subscribe, unsubscribe } from '@/hooks/usePushNotification';
 
 const allNavItems = [
   { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -120,6 +121,13 @@ export default function AdminLayoutClient({
     }
   }, [isAuthenticated]);
 
+  // Subscribe to push notifications when authenticated
+  useEffect(() => {
+    if (isAuthenticated) {
+      subscribe();
+    }
+  }, [isAuthenticated]);
+
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!isLoading && !isAuthenticated && pathname !== '/admin/login') {
@@ -184,6 +192,7 @@ export default function AdminLayoutClient({
   }, [showNotifications]);
 
   const handleLogout = async () => {
+    await unsubscribe();
     await logout();
     router.push('/admin/login');
   };

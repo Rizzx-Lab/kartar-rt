@@ -1,7 +1,0 @@
-{
-  "/page": "app/page.js",
-  "/tentang-kami/page": "app/tentang-kami/page.js",
-  "/kegiatan/page": "app/kegiatan/page.js",
-  "/kegiatan/[slug]/page": "app/kegiatan/[slug]/page.js",
-  "/galeri/page": "app/galeri/page.js"
-}
