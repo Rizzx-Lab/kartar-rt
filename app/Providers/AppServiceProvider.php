@@ -2,8 +2,8 @@
 
 namespace App\Providers;
 
-use App\Models\{Announcement, Gallery, Program};
-use App\Observers\{AnnouncementObserver, GalleryObserver, ProgramObserver};
+use App\Models\{Announcement, Gallery, OrganizationMember, Program};
+use App\Observers\{AnnouncementObserver, GalleryObserver, OrganizationObserver, ProgramObserver};
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -24,5 +24,6 @@ class AppServiceProvider extends ServiceProvider
         Program::observe(ProgramObserver::class);
         Announcement::observe(AnnouncementObserver::class);
         Gallery::observe(GalleryObserver::class);
+        OrganizationMember::observe(OrganizationObserver::class);
     }
 }

@@ -13,10 +13,10 @@ class AdminActivityNotification extends Notification implements ShouldQueue
     use Queueable;
 
     public function __construct(
-        public string $actorName,
-        public string $action,
+        public string $actorEmail,
+        public string $actionLabel,
         public string $modelType,
-        public string $modelName,
+        public string $itemName,
         public int $modelId
     ) {}
 
@@ -27,26 +27,19 @@ class AdminActivityNotification extends Notification implements ShouldQueue
 
     public function toWebPush(object $notifiable, notification $notification): WebPushMessage
     {
-        $actionText = match ($this->action) {
-            'created' => 'membuat',
-            'updated' => 'mengupdate',
-            'deleted' => 'menghapus',
-            default => $this->action,
-        };
-
-        $body = "{$this->actorName} melakukan {$actionText} pada {$this->modelType}";
+        $body = "{$this->actorEmail} {$this->actionLabel}: {$this->itemName}";
 
         return (new WebPushMessage)
-            ->title("Aktivitas Admin: {$this->modelType}")
+            ->title('Aktivitas Admin')
             ->body($body)
             ->icon('/icons/icon-192.png')
             ->badge('/icons/icon-192.png')
             ->data([
                 'type' => 'admin_activity',
-                'actor_name' => $this->actorName,
-                'action' => $this->action,
+                'actor_email' => $this->actorEmail,
+                'action_label' => $this->actionLabel,
                 'model_type' => $this->modelType,
-                'model_name' => $this->modelName,
+                'item_name' => $this->itemName,
                 'model_id' => $this->modelId,
             ]);
     }
@@ -55,10 +48,10 @@ class AdminActivityNotification extends Notification implements ShouldQueue
     {
         return [
             'type' => 'admin_activity',
-            'actor_name' => $this->actorName,
-            'action' => $this->action,
+            'actor_email' => $this->actorEmail,
+            'action_label' => $this->actionLabel,
             'model_type' => $this->modelType,
-            'model_name' => $this->modelName,
+            'item_name' => $this->itemName,
             'model_id' => $this->modelId,
         ];
     }

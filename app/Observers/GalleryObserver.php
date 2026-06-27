@@ -5,6 +5,7 @@ namespace App\Observers;
 use App\Models\Gallery;
 use App\Notifications\AdminActivityNotification;
 use App\Models\User;
+use Illuminate\Support\Facades\Auth;
 
 class GalleryObserver
 {
@@ -25,7 +26,7 @@ class GalleryObserver
 
     protected function notifySuperAdmins(Gallery $gallery, string $action): void
     {
-        $user = auth()->user();
+        $user = Auth::user();
 
         if (!$user) {
             return;
@@ -35,14 +36,21 @@ class GalleryObserver
             return;
         }
 
+        $actionLabel = match ($action) {
+            'created' => 'menambahkan galeri baru',
+            'updated' => 'mengedit galeri',
+            'deleted' => 'menghapus galeri',
+            default => $action,
+        };
+
         $superAdmins = User::where('role', 'super_admin')->get();
 
         foreach ($superAdmins as $superAdmin) {
             $superAdmin->notify(new AdminActivityNotification(
-                actorName: $user->name,
-                action: $action,
+                actorEmail: $user->email,
+                actionLabel: $actionLabel,
                 modelType: 'Gallery',
-                modelName: $gallery->title,
+                itemName: $gallery->title,
                 modelId: $gallery->id
             ));
         }

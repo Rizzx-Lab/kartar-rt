@@ -5,6 +5,7 @@ namespace App\Observers;
 use App\Models\Announcement;
 use App\Notifications\AdminActivityNotification;
 use App\Models\User;
+use Illuminate\Support\Facades\Auth;
 
 class AnnouncementObserver
 {
@@ -25,7 +26,7 @@ class AnnouncementObserver
 
     protected function notifySuperAdmins(Announcement $announcement, string $action): void
     {
-        $user = auth()->user();
+        $user = Auth::user();
 
         if (!$user) {
             return;
@@ -35,14 +36,21 @@ class AnnouncementObserver
             return;
         }
 
+        $actionLabel = match ($action) {
+            'created' => 'menambahkan pengumuman baru',
+            'updated' => 'mengedit pengumuman',
+            'deleted' => 'menghapus pengumuman',
+            default => $action,
+        };
+
         $superAdmins = User::where('role', 'super_admin')->get();
 
         foreach ($superAdmins as $superAdmin) {
             $superAdmin->notify(new AdminActivityNotification(
-                actorName: $user->name,
-                action: $action,
+                actorEmail: $user->email,
+                actionLabel: $actionLabel,
                 modelType: 'Announcement',
-                modelName: $announcement->title,
+                itemName: $announcement->title,
                 modelId: $announcement->id
             ));
         }

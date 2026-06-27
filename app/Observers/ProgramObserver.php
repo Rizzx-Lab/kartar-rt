@@ -5,9 +5,12 @@ namespace App\Observers;
 use App\Models\Program;
 use App\Notifications\AdminActivityNotification;
 use App\Models\User;
+use Illuminate\Support\Facades\Auth;
 
 class ProgramObserver
 {
+    private const MODEL_LABEL = 'program';
+
     public function created(Program $program): void
     {
         $this->notifySuperAdmins($program, 'created');
@@ -25,7 +28,7 @@ class ProgramObserver
 
     protected function notifySuperAdmins(Program $program, string $action): void
     {
-        $user = auth()->user();
+        $user = Auth::user();
 
         if (!$user) {
             return;
@@ -35,14 +38,21 @@ class ProgramObserver
             return;
         }
 
+        $actionLabel = match ($action) {
+            'created' => 'menambahkan program baru',
+            'updated' => 'mengedit program',
+            'deleted' => 'menghapus program',
+            default => $action,
+        };
+
         $superAdmins = User::where('role', 'super_admin')->get();
 
         foreach ($superAdmins as $superAdmin) {
             $superAdmin->notify(new AdminActivityNotification(
-                actorName: $user->name,
-                action: $action,
+                actorEmail: $user->email,
+                actionLabel: $actionLabel,
                 modelType: 'Program',
-                modelName: $program->name,
+                itemName: $program->name,
                 modelId: $program->id
             ));
         }
