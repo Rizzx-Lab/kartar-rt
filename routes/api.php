@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\PublicApiController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\AdminApiController;
 use App\Http\Controllers\Api\PushSubscriptionController;
+use App\Http\Controllers\Api\PwaController;
 
 /*
 |--------------------------------------------------------------------------
@@ -93,7 +94,12 @@ Route::prefix('v1')->name('api.')->group(function () {
             Route::post('/admin/users', [AdminApiController::class, 'userStore'])->name('admin.users.store');
             Route::put('/admin/users/{id}', [AdminApiController::class, 'userUpdate'])->name('admin.users.update');
             Route::delete('/admin/users/{id}', [AdminApiController::class, 'userDestroy'])->name('admin.users.destroy');
+            Route::post('/admin/users/{id}/reset-pwa', [PwaController::class, 'resetPwa'])->name('admin.users.reset-pwa');
         });
+
+        // User PWA Status (Auth required)
+        Route::get('/user/pwa-status', [PwaController::class, 'getPwaStatus'])->name('user.pwa-status');
+        Route::post('/user/pwa-installed', [PwaController::class, 'markInstalled'])->name('user.pwa-installed');
 
         // Organization Members
         Route::get('/admin/organization', [AdminApiController::class, 'organizationMembers'])->name('admin.organization.index');

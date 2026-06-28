@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { getUsers, createUser, updateUser, deleteUser } from '@/lib/admin-api';
+import { getUsers, createUser, updateUser, deleteUser, resetUserPwa } from '@/lib/admin-api';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface User {
   id: number;
@@ -19,6 +20,7 @@ interface UserFormData {
 }
 
 export default function AdminUsersPage() {
+  const { user } = useAuth();
   const [users, setUsers] = useState<User[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -27,6 +29,7 @@ export default function AdminUsersPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [errors, setErrors] = useState<Partial<UserFormData>>({});
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
     fetchUsers();
@@ -98,6 +101,19 @@ export default function AdminUsersPage() {
         fetchUsers();
       } else {
         alert(response.message || 'Gagal menghapus');
+      }
+    }
+  };
+
+  const handleResetPwa = async (userId: number, userName: string) => {
+    if (confirm(`Reset status PWA untuk ${userName}?`)) {
+      const success = await resetUserPwa(userId);
+      if (success) {
+        setToast({ message: `Status PWA ${userName} berhasil direset.`, type: 'success' });
+        setTimeout(() => setToast(null), 3000);
+      } else {
+        setToast({ message: `Gagal mereset status PWA untuk ${userName}.`, type: 'error' });
+        setTimeout(() => setToast(null), 3000);
       }
     }
   };
@@ -196,6 +212,17 @@ export default function AdminUsersPage() {
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m-7-3V5a2 2 0 012-2h3.5" />
                       </svg>
                     </button>
+                    {user?.role === 'super_admin' && (
+                      <button
+                        onClick={() => handleResetPwa(user.id, user.name)}
+                        className="p-2 text-purple-500 hover:bg-purple-50 rounded-lg transition-colors"
+                        title="Reset PWA"
+                      >
+                        <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -259,6 +286,17 @@ export default function AdminUsersPage() {
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m-7-3V5a2 2 0 012-2h3.5" />
                         </svg>
                       </button>
+                      {user?.role === 'super_admin' && (
+                        <button
+                          onClick={() => handleResetPwa(user.id, user.name)}
+                          className="p-2 text-purple-500 hover:bg-purple-50 rounded-lg transition-colors"
+                          title="Reset PWA"
+                        >
+                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                          </svg>
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -375,6 +413,25 @@ export default function AdminUsersPage() {
               </div>
             </form>
           </div>
+        </div>
+      )}
+      {/* Toast Notification */}
+      {toast && (
+        <div
+          className={`fixed bottom-4 right-4 px-4 py-3 rounded-lg shadow-lg z-50 flex items-center gap-2 ${
+            toast.type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+          }`}
+        >
+          {toast.type === 'success' ? (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          ) : (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          )}
+          <span className="text-sm font-medium">{toast.message}</span>
         </div>
       )}
     </div>

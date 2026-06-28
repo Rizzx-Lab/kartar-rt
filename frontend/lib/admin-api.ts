@@ -365,3 +365,41 @@ export async function unsubscribePush(): Promise<boolean> {
     return false;
   }
 }
+
+// ========================
+// PWA INSTALLATION TRACKING
+// ========================
+
+// Get PWA installation status for current logged-in user
+export async function getPwaStatus(): Promise<boolean> {
+  try {
+    const response = await adminFetch<{ pwa_installed: boolean }>('/user/pwa-status');
+    return response.success && response.data?.pwa_installed === true;
+  } catch {
+    return false;
+  }
+}
+
+// Mark PWA as installed for current logged-in user
+export async function markPwaInstalled(): Promise<boolean> {
+  try {
+    const result = await adminFetch('/user/pwa-installed', {
+      method: 'POST',
+    });
+    return result.success;
+  } catch {
+    return false;
+  }
+}
+
+// Reset PWA status for a specific user (super_admin only)
+export async function resetUserPwa(userId: number): Promise<boolean> {
+  try {
+    const result = await adminFetch(`/admin/users/${userId}/reset-pwa`, {
+      method: 'POST',
+    });
+    return result.success;
+  } catch {
+    return false;
+  }
+}

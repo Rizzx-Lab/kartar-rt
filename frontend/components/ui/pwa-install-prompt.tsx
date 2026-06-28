@@ -1,37 +1,44 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Download, Smartphone } from 'lucide-react';
+import { Smartphone } from 'lucide-react';
+import { getPwaStatus, markPwaInstalled } from '@/lib/admin-api';
 
 export function PWAInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<any>(null);
   const [isInstalled, setIsInstalled] = useState(false);
-  const [isServiceWorkerReady, setIsServiceWorkerReady] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    // Check if already installed
+    // Check if already installed via browser display mode
     if (typeof window !== 'undefined' && window.matchMedia('(display-mode: standalone)').matches) {
       setIsInstalled(true);
+      setIsLoading(false);
+      return;
     }
 
-    // Register Service Worker
-    if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js', { scope: '/admin/' })
-        .then((registration) => {
-          console.log('Service Worker registered:', registration.scope);
-          setIsServiceWorkerReady(true);
-        })
-        .catch((error) => {
-          console.error('Service Worker registration failed:', error);
-        });
-    }
+    // Fetch PWA status from backend API
+    const checkPwaStatus = async () => {
+      try {
+        const installed = await getPwaStatus();
+        if (installed) {
+          setIsInstalled(true);
+        }
+      } catch (error) {
+        console.error('Failed to fetch PWA status:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
 
-    // Listen for beforeinstallprompt event
-  const handleBeforeInstallPrompt = (e: Event) => {
-    e.preventDefault();
-    console.log('✅ beforeinstallprompt fired! PWA can be installed.');
-    setDeferredPrompt(e);
-  };
+    checkPwaStatus();
+
+    // Listen for beforeinstallprompt event from browser
+    const handleBeforeInstallPrompt = (e: Event) => {
+      e.preventDefault();
+      console.log('✅ beforeinstallprompt fired! PWA can be installed.');
+      setDeferredPrompt(e);
+    };
 
     window.addEventListener('beforeinstallprompt', handleBeforeInstallPrompt);
 
@@ -48,21 +55,40 @@ export function PWAInstallPrompt() {
     };
   }, []);
 
-const handleInstall = async () => {
-  console.log('Install clicked, deferredPrompt:', deferredPrompt ? 'AVAILABLE ✅' : 'NULL ❌');
-  if (deferredPrompt) {
-    deferredPrompt.prompt();
+  const handleInstall = async () => {
+    console.log('Install clicked, deferredPrompt:', deferredPrompt ? 'AVAILABLE ✅' : 'NULL ❌');
+
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
+
       if (outcome === 'accepted') {
+        // User accepted the install prompt
         setDeferredPrompt(null);
+
+        // Mark as installed in backend
+        try {
+          await markPwaInstalled();
+        } catch (error) {
+          console.error('Failed to mark PWA as installed in backend:', error);
+        }
+
+        setIsInstalled(true);
       }
     } else {
-      // Fallback: buka panduan install manual
-      alert('Untuk install PWA:\n\n📱 Android: Klik tombol ⋮ → "Pasang aplikasi"\n\n💻 Desktop: Ctrl+Shift+I → Application → Install\n\n📱 iOS: Share → Tambah ke Layar Beranda');
+      // Fallback: show manual install guide
+      alert(
+        'Untuk install PWA:\n\n📱 Android: Klik tombol ⋮ → "Pasang aplikasi"\n\n💻 Desktop: Ctrl+Shift+I → Application → Install\n\n📱 iOS: Share → Tambah ke Layar Beranda'
+      );
     }
   };
 
-  // Kalau sudah installed, jangan tampilkan
+  // Don't show anything while loading (no flash)
+  if (isLoading) {
+    return null;
+  }
+
+  // Don't show if already installed
   if (isInstalled) {
     return null;
   }
