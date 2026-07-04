@@ -6,6 +6,7 @@ interface ApiResponse<T> {
   success: boolean;
   data?: T;
   message?: string;
+  errors?: Record<string, string[]>;
 }
 
 async function adminFetch<T>(
@@ -43,6 +44,14 @@ async function adminFetch<T>(
         window.location.href = '/admin/login';
       }
       return { success: false, message: 'Sesi berakhir. Silakan login ulang.' };
+    }
+
+    // Parse Laravel validation error (422 Unprocessable Entity)
+    if (response.status === 422 && data.errors) {
+      // Extract first validation error message
+      const firstErrorField = Object.keys(data.errors)[0];
+      const errorMessage = data.errors[firstErrorField]?.[0] || data.message || 'Validasi gagal.';
+      return { success: false, message: errorMessage, errors: data.errors };
     }
 
     return {

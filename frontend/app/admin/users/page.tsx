@@ -77,7 +77,10 @@ export default function AdminUsersPage() {
       name: formData.name,
       email: formData.email,
       role: formData.role,
-      ...(formData.password && { password: formData.password }),
+      ...(formData.password && {
+        password: formData.password,
+        password_confirmation: formData.password,
+      }),
     };
     let response;
     if (editingUser) {
@@ -89,7 +92,9 @@ export default function AdminUsersPage() {
       setShowModal(false);
       fetchUsers();
     } else {
-      alert(response.message || 'Terjadi kesalahan');
+      // Use toast for error display instead of native alert
+      setToast({ message: response.message || 'Terjadi kesalahan', type: 'error' });
+      setTimeout(() => setToast(null), 5000);
     }
     setIsSubmitting(false);
   };
@@ -100,7 +105,8 @@ export default function AdminUsersPage() {
       if (response.success) {
         fetchUsers();
       } else {
-        alert(response.message || 'Gagal menghapus');
+        setToast({ message: response.message || 'Gagal menghapus user.', type: 'error' });
+        setTimeout(() => setToast(null), 5000);
       }
     }
   };
