@@ -16,7 +16,11 @@ export const metadata: Metadata = {
 async function getAnnouncementsData() {
   try {
     const response = await getAnnouncements(1, 20);
-    return response.success && response.data ? response.data : mockAnnouncements;
+    // Handle paginated response: API returns { success, data: [...], meta: {...} }
+    if (response && response.success && Array.isArray(response.data)) {
+      return response.data;
+    }
+    return mockAnnouncements;
   } catch {
     return mockAnnouncements;
   }
