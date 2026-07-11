@@ -217,6 +217,9 @@ class AdminApiController extends Controller
             $data['image_public_id'] = $result['public_id'];
         }
 
+        // Set user_id from authenticated admin
+        $data['user_id'] = auth()->id();
+
         $announcement = Announcement::create($data);
 
         // Invalidate public API caches
@@ -390,7 +393,12 @@ class AdminApiController extends Controller
         // Delete all photos
         foreach ($gallery->photos as $photo) {
             if ($photo->file_path) {
-                $this->deleteFromCloudinary($photo->file_path);
+                try {
+                    $this->deleteFromCloudinary($photo->file_path);
+                } catch (\Exception $e) {
+                    \Log::error('Failed to delete gallery photo from Cloudinary: ' . $e->getMessage());
+                    // Continue with other photos even if one fails
+                }
             }
         }
 
@@ -444,7 +452,12 @@ class AdminApiController extends Controller
         $photo = GalleryPhoto::findOrFail($id);
 
         if ($photo->file_path) {
-            $this->deleteFromCloudinary($photo->file_path);
+            try {
+                $this->deleteFromCloudinary($photo->file_path);
+            } catch (\Exception $e) {
+                \Log::error('Failed to delete gallery photo from Cloudinary: ' . $e->getMessage());
+                // Continue with deletion even if Cloudinary delete fails
+            }
         }
 
         $photo->delete();
@@ -592,7 +605,11 @@ class AdminApiController extends Controller
 
         if ($request->hasFile('photo')) {
             if ($member->photo) {
-                $this->deleteFromCloudinary($member->photo);
+                try {
+                    $this->deleteFromCloudinary($member->photo);
+                } catch (\Exception $e) {
+                    \Log::error('Failed to delete member photo from Cloudinary: ' . $e->getMessage());
+                }
             }
             $data['photo'] = $this->uploadToCloudinary($request->file('photo'), 'kartar/members');
         }
@@ -610,7 +627,11 @@ class AdminApiController extends Controller
         $member = OrganizationMember::findOrFail($id);
 
         if ($member->photo) {
-            $this->deleteFromCloudinary($member->photo);
+            try {
+                $this->deleteFromCloudinary($member->photo);
+            } catch (\Exception $e) {
+                \Log::error('Failed to delete member photo from Cloudinary: ' . $e->getMessage());
+            }
         }
 
         $member->delete();
@@ -682,7 +703,11 @@ class AdminApiController extends Controller
             // Delete old image if exists
             $oldSetting = SiteSetting::where('key', 'about_image')->first();
             if ($oldSetting && $oldSetting->value) {
-                $this->deleteFromCloudinary($oldSetting->value);
+                try {
+                    $this->deleteFromCloudinary($oldSetting->value);
+                } catch (\Exception $e) {
+                    \Log::error('Failed to delete about_image from Cloudinary: ' . $e->getMessage());
+                }
             }
             $aboutImageUrl = $this->uploadToCloudinary($request->file('about_image'), 'kartar/settings');
             SiteSetting::updateOrCreate(
