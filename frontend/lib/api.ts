@@ -170,6 +170,7 @@ export interface Announcement {
   is_pinned: boolean;
   published_at: string;
   created_at?: string;
+  image_url?: string | null;
 }
 
 export interface GalleryPhoto {

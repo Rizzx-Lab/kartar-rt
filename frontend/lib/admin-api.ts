@@ -135,17 +135,19 @@ export async function getAnnouncements() {
   return adminFetch<any[]>('/admin/announcements');
 }
 
-export async function createAnnouncement(data: any) {
+export async function createAnnouncement(data: FormData) {
   return adminFetch<any>('/admin/announcements', {
     method: 'POST',
-    body: JSON.stringify(data),
+    body: data,
   });
 }
 
-export async function updateAnnouncement(id: number, data: any) {
+export async function updateAnnouncement(id: number, data: FormData) {
+  // Laravel doesn't support PUT with FormData, use POST with method spoofing
+  data.append('_method', 'PUT');
   return adminFetch<any>(`/admin/announcements/${id}`, {
-    method: 'PUT',
-    body: JSON.stringify(data),
+    method: 'POST',
+    body: data,
   });
 }
 

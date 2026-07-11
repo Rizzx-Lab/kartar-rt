@@ -6,8 +6,27 @@ use Illuminate\Database\Eloquent\Model;
 
 class Announcement extends Model
 {
-    protected $fillable = ['user_id', 'session_id', 'title', 'slug', 'content', 'excerpt', 'type', 'is_pinned', 'is_published', 'published_at', 'expired_at'];
-    protected $casts    = ['is_pinned' => 'boolean', 'published_at' => 'datetime', 'expired_at' => 'datetime'];
+    protected $fillable = [
+        'user_id',
+        'session_id',
+        'title',
+        'slug',
+        'content',
+        'excerpt',
+        'type',
+        'is_pinned',
+        'is_published',
+        'published_at',
+        'expired_at',
+        'image_url',
+        'image_public_id',
+    ];
+    protected $casts = [
+        'is_pinned' => 'boolean',
+        'is_published' => 'boolean',
+        'published_at' => 'datetime',
+        'expired_at' => 'datetime',
+    ];
 
     public function user() { return $this->belongsTo(User::class); }
     public function session() { return $this->belongsTo(ProgramSession::class); }

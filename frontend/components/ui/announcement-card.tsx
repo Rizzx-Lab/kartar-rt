@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { ChevronDown, Pin, Calendar } from 'lucide-react';
+import { ChevronDown, Pin, Calendar, Image as ImageIcon } from 'lucide-react';
 
 interface Announcement {
   id: number;
@@ -12,6 +12,7 @@ interface Announcement {
   content?: string | null;
   is_pinned: boolean;
   published_at: string;
+  image_url?: string | null;
 }
 
 interface AnnouncementCardProps {
@@ -40,6 +41,7 @@ export function AnnouncementCard({ announcement, variant }: AnnouncementCardProp
   const [isExpanded, setIsExpanded] = useState(false);
   const date = formatDate(announcement.published_at);
   const isPinned = variant === 'pinned';
+  const hasImage = !!announcement.image_url;
 
   return (
     <motion.article
@@ -116,6 +118,18 @@ export function AnnouncementCard({ announcement, variant }: AnnouncementCardProp
               <Calendar className="w-3 h-3" />
               {formatFullDate(announcement.published_at)}
             </p>
+
+            {/* Image */}
+            {hasImage && (
+              <div className="mb-4">
+                <img
+                  src={announcement.image_url!}
+                  alt={announcement.title}
+                  className="w-full h-48 object-cover rounded-lg"
+                />
+              </div>
+            )}
+
             {announcement.content ? (
               <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed">
                 <p className="whitespace-pre-wrap">{announcement.content}</p>
@@ -125,6 +139,16 @@ export function AnnouncementCard({ announcement, variant }: AnnouncementCardProp
             )}
           </div>
         </motion.div>
+
+        {/* Image indicator when collapsed (for pinned announcements) */}
+        {hasImage && !isExpanded && isPinned && (
+          <div className="px-5 pb-3 -mt-2">
+            <span className="inline-flex items-center gap-1 text-xs text-blue-600 bg-blue-50 px-2 py-1 rounded-full">
+              <ImageIcon className="w-3 h-3" />
+              Ada poster
+            </span>
+          </div>
+        )}
       </motion.div>
     </motion.article>
   );

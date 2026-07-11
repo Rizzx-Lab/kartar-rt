@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Traits\UploadsToCloudinary;
 use App\Models\{Program, ProgramSession, Announcement, Gallery, GalleryPhoto, Contact, User, OrganizationMember, SiteSetting};
 use Illuminate\Http\{Request, JsonResponse};
-use Illuminate\Support\Facades\{Storage, File, Cache};
+use Illuminate\Support\Facades\{Storage, File, Cache, Log};
 
 class AdminApiController extends Controller
 {
@@ -201,6 +201,7 @@ class AdminApiController extends Controller
             'content' => 'required|string',
             'excerpt' => 'nullable|string|max:250',
             'published_at' => 'nullable|date',
+            'image' => 'nullable|image|max:2048',
         ]);
 
         // Handle boolean fields separately (FormData sends strings "true"/"false")
@@ -209,7 +210,19 @@ class AdminApiController extends Controller
         $data['is_published'] = filter_var($request->input('is_published'), FILTER_VALIDATE_BOOLEAN) ?: true;
         $data['published_at'] = $request->published_at ?? now();
 
+        // Handle image upload
+        if ($request->hasFile('image')) {
+            $result = $this->uploadToCloudinaryWithPublicId($request->file('image'), 'kartar/announcements');
+            $data['image_url'] = $result['url'];
+            $data['image_public_id'] = $result['public_id'];
+        }
+
         $announcement = Announcement::create($data);
+
+        // Invalidate public API caches
+        Cache::forget('api:home');
+        Cache::forget('api:announcements:1:10'); // First page common cache key
+        Cache::forget('api:announcement:' . $announcement->slug);
 
         return response()->json(['success' => true, 'data' => $announcement, 'message' => 'Pengumuman berhasil dibuat.']);
     }
@@ -223,13 +236,47 @@ class AdminApiController extends Controller
             'content' => 'required|string',
             'excerpt' => 'nullable|string|max:250',
             'published_at' => 'nullable|date',
+            'image' => 'nullable|image|max:2048',
+            'remove_image' => 'nullable|boolean',
         ]);
 
         // Handle boolean fields separately (FormData sends strings "true"/"false")
         $data['is_pinned'] = filter_var($request->input('is_pinned'), FILTER_VALIDATE_BOOLEAN);
         $data['is_published'] = filter_var($request->input('is_published'), FILTER_VALIDATE_BOOLEAN);
+        $removeImage = filter_var($request->input('remove_image'), FILTER_VALIDATE_BOOLEAN);
+
+        // Handle new image upload
+        if ($request->hasFile('image')) {
+            // Delete old image if exists
+            if ($announcement->image_public_id) {
+                try {
+                    $this->deleteFromCloudinary($announcement->image_public_id);
+                } catch (\Exception $e) {
+                    \Log::error('Failed to delete old announcement image: ' . $e->getMessage());
+                }
+            }
+            $result = $this->uploadToCloudinaryWithPublicId($request->file('image'), 'kartar/announcements');
+            $data['image_url'] = $result['url'];
+            $data['image_public_id'] = $result['public_id'];
+        }
+
+        // Handle explicit image removal
+        if ($removeImage && $announcement->image_public_id) {
+            try {
+                $this->deleteFromCloudinary($announcement->image_public_id);
+            } catch (\Exception $e) {
+                \Log::error('Failed to delete announcement image: ' . $e->getMessage());
+            }
+            $data['image_url'] = null;
+            $data['image_public_id'] = null;
+        }
 
         $announcement->update($data);
+
+        // Invalidate public API caches
+        Cache::forget('api:home');
+        Cache::forget('api:announcements:1:10'); // First page common cache key
+        Cache::forget('api:announcement:' . $announcement->slug);
 
         return response()->json(['success' => true, 'data' => $announcement, 'message' => 'Pengumuman berhasil diupdate.']);
     }
@@ -237,7 +284,24 @@ class AdminApiController extends Controller
     public function announcementDestroy(int $id): JsonResponse
     {
         $announcement = Announcement::findOrFail($id);
+        $slug = $announcement->slug; // Capture before deletion
+
+        // Delete image from Cloudinary if exists
+        if ($announcement->image_public_id) {
+            try {
+                $this->deleteFromCloudinary($announcement->image_public_id);
+            } catch (\Exception $e) {
+                \Log::error('Failed to delete announcement image on destroy: ' . $e->getMessage());
+                // Continue with deletion even if Cloudinary delete fails
+            }
+        }
+
         $announcement->delete();
+
+        // Invalidate public API caches
+        Cache::forget('api:home');
+        Cache::forget('api:announcements:1:10'); // First page common cache key
+        Cache::forget('api:announcement:' . $slug);
 
         return response()->json(['success' => true, 'message' => 'Pengumuman berhasil dihapus.']);
     }

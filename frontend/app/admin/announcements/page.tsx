@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { getAnnouncements, createAnnouncement, updateAnnouncement, deleteAnnouncement } from '@/lib/admin-api';
+import { X, Image as ImageIcon } from 'lucide-react';
 
 interface Announcement {
   id: number;
@@ -13,6 +14,8 @@ interface Announcement {
   is_published: boolean;
   published_at: string;
   created_at: string;
+  image_url?: string | null;
+  image_public_id?: string | null;
 }
 
 interface FormData {
@@ -54,6 +57,11 @@ export default function AdminAnnouncementsPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
+  // Image upload state
+  const [selectedImage, setSelectedImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [removeImage, setRemoveImage] = useState(false);
+
   useEffect(() => {
     fetchAnnouncements();
   }, []);
@@ -77,6 +85,9 @@ export default function AdminAnnouncementsPage() {
       is_published: true,
       published_at: new Date().toISOString().split('T')[0],
     });
+    setSelectedImage(null);
+    setImagePreview(null);
+    setRemoveImage(false);
     setShowModal(true);
   };
 
@@ -90,23 +101,52 @@ export default function AdminAnnouncementsPage() {
       is_published: announcement.is_published,
       published_at: announcement.published_at?.split('T')[0] || new Date().toISOString().split('T')[0],
     });
+    setSelectedImage(null);
+    setImagePreview(null);
+    setRemoveImage(false);
     setShowModal(true);
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setSelectedImage(file);
+      setImagePreview(URL.createObjectURL(file));
+      setRemoveImage(false);
+    }
+  };
+
+  const handleRemoveExistingImage = () => {
+    setRemoveImage(true);
+    setSelectedImage(null);
+    setImagePreview(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
 
-    const data = {
-      ...formData,
-      published_at: formData.published_at,
-    };
+    const form = new FormData();
+    form.append('title', formData.title);
+    form.append('content', formData.content);
+    form.append('excerpt', formData.excerpt);
+    form.append('is_pinned', String(formData.is_pinned));
+    form.append('is_published', String(formData.is_published));
+    form.append('published_at', formData.published_at);
+
+    if (selectedImage) {
+      form.append('image', selectedImage);
+    }
+
+    if (removeImage) {
+      form.append('remove_image', '1');
+    }
 
     let response;
     if (editingAnnouncement) {
-      response = await updateAnnouncement(editingAnnouncement.id, data);
+      response = await updateAnnouncement(editingAnnouncement.id, form);
     } else {
-      response = await createAnnouncement(data);
+      response = await createAnnouncement(form);
     }
 
     if (response.success) {
@@ -198,15 +238,29 @@ export default function AdminAnnouncementsPage() {
                   <div className={`w-12 h-12 rounded-xl flex items-center justify-center shrink-0 ${
                     announcement.is_pinned ? 'bg-gold-500' : 'bg-gray-200'
                   }`}>
-                    <svg className={`w-5 h-5 ${announcement.is_pinned ? 'text-navy-900' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24c0-1.104 1.118-1.94 2.117-1.855 2.478v1.268c-.063.534-.117 1.05-.154 1.54M5 12.14S17 11 17 11s-.755-.96-.755-1.861C16.245 9.568 15.763 9 15 9s-1.23.568-1.23.568S2 11 2 15s1.755 4.14 1.755 4.14" />
-                    </svg>
+                    {announcement.image_url ? (
+                      <img
+                        src={announcement.image_url}
+                        alt=""
+                        className="w-full h-full object-cover rounded-xl"
+                      />
+                    ) : (
+                      <svg className={`w-5 h-5 ${announcement.is_pinned ? 'text-navy-900' : 'text-gray-400'}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24c0-1.104 1.118-1.94 2.117-1.855 2.478v1.268c-.063.534-.117 1.05-.154 1.54M5 12.14S17 11 17 11s-.755-.96-.755-1.861C16.245 9.568 15.763 9 15 9s-1.23.568-1.23.568S2 11 2 15s1.755 4.14 1.755 4.14" />
+                      </svg>
+                    )}
                   </div>
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-1">
                       {announcement.is_pinned && (
                         <span className="px-2 py-1 bg-gold-500/10 text-gold-600 text-xs font-medium rounded">
                           Disematkan
+                        </span>
+                      )}
+                      {announcement.image_url && (
+                        <span className="px-2 py-1 bg-blue-100 text-blue-600 text-xs font-medium rounded flex items-center gap-1">
+                          <ImageIcon className="w-3 h-3" />
+                          Ada Gambar
                         </span>
                       )}
                     </div>
@@ -297,12 +351,59 @@ export default function AdminAnnouncementsPage() {
                 {editingAnnouncement ? 'Edit Pengumuman' : 'Buat Pengumuman Baru'}
               </h3>
               <button onClick={() => setShowModal(false)} className="p-2 hover:bg-gray-100 rounded-lg">
-                <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
+                <X className="w-5 h-5 text-gray-500" />
               </button>
             </div>
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
+              {/* Image Upload */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Gambar Poster</label>
+                {imagePreview ? (
+                  <div className="relative inline-block">
+                    <img src={imagePreview} alt="Preview" className="w-full h-40 object-cover rounded-lg" />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setSelectedImage(null);
+                        setImagePreview(null);
+                      }}
+                      className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : editingAnnouncement?.image_url && !removeImage ? (
+                  <div className="relative inline-block">
+                    <img src={editingAnnouncement.image_url} alt="Current" className="w-full h-40 object-cover rounded-lg" />
+                    <button
+                      type="button"
+                      onClick={handleRemoveExistingImage}
+                      className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                ) : (
+                  <label className="flex flex-col items-center justify-center w-full h-40 border-2 border-gray-300 border-dashed rounded-lg cursor-pointer hover:bg-gray-50">
+                    <div className="flex flex-col items-center justify-center pt-5 pb-6">
+                      <svg className="w-8 h-8 mb-3 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l4.586-4.586a2 2 0 012.828 0L16 16" />
+                      </svg>
+                      <p className="text-sm text-gray-500">Klik untuk upload gambar (max 2MB)</p>
+                    </div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageChange}
+                      className="hidden"
+                    />
+                  </label>
+                )}
+                {removeImage && !imagePreview && (
+                  <p className="text-sm text-red-500 mt-1">Gambar akan dihapus saat disimpan</p>
+                )}
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
                   Judul <span className="text-red-500">*</span>

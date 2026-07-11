@@ -420,6 +420,7 @@ class PublicApiController extends Controller
             'slug' => $announcement->slug,
             'is_pinned' => $announcement->is_pinned,
             'published_at' => $announcement->published_at,
+            'image_url' => $announcement->image_url,
         ];
 
         if ($full) {
