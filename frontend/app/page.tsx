@@ -268,29 +268,45 @@ export default async function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {announcements.slice(0, 3).map((ann) => (
-              <div
-                key={ann.id}
-                className="bg-white rounded-xl p-6 border border-gray-100 hover:border-amber-200 hover:shadow-lg transition-all group"
-              >
-                {ann.is_pinned && (
-                  <span className="inline-flex items-center px-2 py-1 bg-amber-500/10 text-amber-600 text-xs font-medium rounded mb-3">
-                    📌 Disematkan
-                  </span>
-                )}
-                <h3 className="text-base font-semibold text-navy-800 mb-2 group-hover:text-amber-600 transition-colors">{ann.title}</h3>
-                <p className="text-gray-600 text-sm mb-4 line-clamp-2">{ann.excerpt}</p>
-                <div className="flex items-center justify-between">
-                  <span className="text-xs text-gray-400">
-                    {new Date(ann.published_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
-                  </span>
-                  <Link href="/pengumuman" className="text-sm text-amber-600 hover:text-amber-700 font-medium flex items-center gap-1">
-                    Baca selengkapnya
-                    <ArrowRight className="w-4 h-4" />
-                  </Link>
+            {announcements.slice(0, 3).map((ann) => {
+              const showPoster = ann.is_pinned && ann.image_url;
+              return (
+                <div
+                  key={ann.id}
+                  className="bg-white rounded-xl border border-gray-100 hover:border-amber-200 hover:shadow-lg transition-all group overflow-hidden"
+                >
+                  {/* Poster-style image for pinned announcements — always visible */}
+                  {showPoster && (
+                    <div className="relative">
+                      <img
+                        src={ann.image_url}
+                        alt={ann.title}
+                        className="w-full max-h-[300px] object-contain"
+                      />
+                    </div>
+                  )}
+
+                  <div className={`p-5 ${showPoster ? '' : ''}`}>
+                    {ann.is_pinned && (
+                      <span className="inline-flex items-center px-2 py-1 bg-amber-500/10 text-amber-600 text-xs font-medium rounded mb-3">
+                        📌 Disematkan
+                      </span>
+                    )}
+                    <h3 className="text-base font-semibold text-navy-800 mb-2 group-hover:text-amber-600 transition-colors">{ann.title}</h3>
+                    <p className="text-gray-600 text-sm mb-4 line-clamp-2">{ann.excerpt}</p>
+                    <div className="flex items-center justify-between">
+                      <span className="text-xs text-gray-400">
+                        {new Date(ann.published_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                      </span>
+                      <Link href="/pengumuman" className="text-sm text-amber-600 hover:text-amber-700 font-medium flex items-center gap-1">
+                        Baca selengkapnya
+                        <ArrowRight className="w-4 h-4" />
+                      </Link>
+                    </div>
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <div className="text-center mt-8">
