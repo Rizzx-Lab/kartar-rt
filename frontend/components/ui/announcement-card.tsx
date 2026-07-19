@@ -175,6 +175,13 @@ export function AnnouncementCard({ announcement, variant }: AnnouncementCardProp
                 <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed">
                   <p className="whitespace-pre-wrap">{announcement.content}</p>
                 </div>
+              ) : announcement.excerpt ? (
+                // List-mode API responses (homepage, /pengumuman list) don't include content —
+                // fall back to excerpt so session-generated announcements still show content.
+                // excerpt is already populated with the session description (or manual excerpt).
+                <div className="prose prose-sm max-w-none text-gray-700 leading-relaxed">
+                  <p className="whitespace-pre-wrap">{announcement.excerpt}</p>
+                </div>
               ) : (
                 <p className="text-gray-500 italic text-sm">Tidak ada detail pengumuman.</p>
               )}
