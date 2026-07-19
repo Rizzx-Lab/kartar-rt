@@ -153,7 +153,7 @@ export function AnnouncementCard({ announcement, variant }: AnnouncementCardProp
             </span>
           </div>
         )}
-      </motion.div>
+      </div>
     </motion.article>
   );
 }
