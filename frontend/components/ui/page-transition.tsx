@@ -42,6 +42,11 @@ export function PageTransition({ children }: PageTransitionProps) {
         initial="initial"
         animate="enter"
         exit="exit"
+        // Set initial state as inline styles so SSR-rendered HTML is also hidden.
+        // Without this, the server renders with no styles (opacity 1), the client
+        // applies initial={false} (opacity 0) but never reaches animate state,
+        // leaving the page stuck invisible on direct/fresh URL loads.
+        style={{ opacity: 0 }}
         className="w-full min-h-screen"
       >
         {children}
