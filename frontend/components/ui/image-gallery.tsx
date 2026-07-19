@@ -2,7 +2,8 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, ZoomIn } from 'lucide-react';
+import { ZoomIn } from 'lucide-react';
+import { Lightbox } from './lightbox';
 
 interface Photo {
   id: number;
@@ -177,7 +178,12 @@ function AnimatedGalleryGrid({ photos, scrollSpeed = 30, shouldAutoScroll = true
       <AnimatePresence>
         {showLightbox && selectedPhoto && (
           <Lightbox
-            photo={selectedPhoto}
+            image={{
+              src: selectedPhoto.src,
+              alt: selectedPhoto.alt,
+              caption: selectedPhoto.caption ?? null,
+              gallery_title: selectedPhoto.gallery?.title ?? null,
+            }}
             onClose={() => setShowLightbox(false)}
           />
         )}
@@ -262,61 +268,6 @@ function AnimatedGalleryItem({ photo, onClick, slow, medium }: AnimatedGalleryIt
             <p className="text-xs text-white/90 line-clamp-1">
               {photo.caption}
             </p>
-          )}
-        </motion.div>
-      )}
-    </motion.div>
-  );
-}
-
-interface LightboxProps {
-  photo: Photo;
-  onClose: () => void;
-}
-
-function Lightbox({ photo, onClose }: LightboxProps) {
-  return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.2 }}
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/95"
-      onClick={onClose}
-    >
-      {/* Close Button */}
-      <motion.button
-        initial={{ scale: 0, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ delay: 0.2, type: 'spring', stiffness: 300 }}
-        onClick={onClose}
-        className="absolute top-4 right-4 p-2 bg-white/10 hover:bg-white/20 rounded-full text-white z-10"
-      >
-        <X className="w-6 h-6" />
-      </motion.button>
-
-      {/* Image */}
-      <motion.img
-        initial={{ scale: 0.8, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-        src={photo.src}
-        alt={photo.alt}
-        className="max-w-full max-h-[90vh] object-contain"
-        onClick={(e) => e.stopPropagation()}
-      />
-
-      {/* Caption */}
-      {photo.caption && (
-        <motion.div
-          initial={{ y: 20, opacity: 0 }}
-          animate={{ y: 0, opacity: 1 }}
-          transition={{ delay: 0.3 }}
-          className="absolute bottom-0 left-0 right-0 bg-linear-to-t from-black/80 to-transparent p-6"
-        >
-          <p className="text-white text-center text-lg">{photo.caption}</p>
-          {photo.gallery && (
-            <p className="text-white/70 text-center text-sm mt-1">{photo.gallery.title}</p>
           )}
         </motion.div>
       )}
