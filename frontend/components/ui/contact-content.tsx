@@ -41,11 +41,14 @@ export function ContactContent({ contactInfo }: ContactContentProps) {
     setError(null);
 
     try {
+      // Get honeypot field value from DOM
+      const honeypotValue = (document.querySelector('input[name="website"]') as HTMLInputElement)?.value || '';
       const response = await submitContact({
         name: formData.name,
         email: formData.email || undefined,
         phone: formData.phone || undefined,
         message: formData.message,
+        website: honeypotValue,
       });
 
       if (response.success) {
@@ -299,6 +302,16 @@ export function ContactContent({ contactInfo }: ContactContentProps) {
                         placeholder="Tulis pesan Anda di sini..."
                       />
                     </div>
+
+                    {/* Honeypot field - hidden from real users, filled by bots */}
+                    <input
+                      type="text"
+                      name="website"
+                      tabIndex={-1}
+                      autoComplete="off"
+                      style={{ position: 'absolute', left: '-9999px', top: '-9999px' }}
+                      onChange={() => {}}
+                    />
 
                     {/* Submit */}
                     <button

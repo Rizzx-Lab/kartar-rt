@@ -381,11 +381,19 @@ class PublicApiController extends Controller
 
     public function submitContact(Request $request): JsonResponse
     {
+        // Honeypot check - if filled, silently reject (don't tip off bots)
+        if ($request->filled('website')) {
+            return response()->json([
+                'success' => true,
+                'message' => 'Pesan berhasil dikirim! Kami akan segera menghubungi kamu.'
+            ]);
+        }
+
         $validated = $request->validate([
             'name'    => 'required|string|max:100',
             'email'   => 'nullable|email|max:100',
             'phone'   => 'nullable|string|max:20',
-            'message' => 'required|string',
+            'message' => 'required|string|max:5000',
         ]);
 
         $contact = Contact::create($validated);
