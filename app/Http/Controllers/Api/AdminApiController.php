@@ -246,18 +246,31 @@ class AdminApiController extends Controller
             $sessionDate = \Carbon\Carbon::parse($session->held_at)->locale('id')->translatedFormat('d F Y');
             $sessionLocation = $session->location ?? 'lokasi belum ditentukan';
 
-            // Content: use description if available, otherwise build from session details
-            $announcementContent = $session->description
-                ? $session->description
+            // Use session description as announcement content if provided, otherwise build from session details
+            $rawDescription = $session->description;
+            Log::info('sessionStore: announcement creation - description check', [
+                'session_id' => $session->id,
+                'has_description' => !empty($rawDescription),
+                'description_length' => $rawDescription ? strlen($rawDescription) : 0,
+                'description_preview' => $rawDescription ? mb_substr($rawDescription, 0, 100) : null,
+            ]);
+
+            $announcementContent = $rawDescription
+                ? $rawDescription
                 : "Sesi {$session->title} telah dijadwalkan pada {$sessionDate} di {$sessionLocation}.";
+
+            // Excerpt: use title as-is. DO NOT auto-append the date here — if the user typed
+            // the date into the title (e.g. "Lomba 17 Agustus - Sabtu 25 Juli 2026"), appending
+            // a formatted date would duplicate it. The published_at / held_at already convey the date.
+            $announcementExcerpt = $session->title;
 
             $announcement = Announcement::create([
                 'user_id' => auth()->id(),
-                'session_id' => $session->id, // Link to the session
+                'session_id' => $session->id,
                 'title' => $session->title,
                 'slug' => \Str::slug($session->title) . '-' . time(),
                 'content' => $announcementContent,
-                'excerpt' => "Sesi {$session->title} - {$sessionDate}",
+                'excerpt' => $announcementExcerpt,
                 'is_published' => true,
                 'is_pinned' => false,
                 'published_at' => now(),
