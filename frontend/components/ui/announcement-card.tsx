@@ -49,8 +49,12 @@ export function AnnouncementCard({ announcement, variant }: AnnouncementCardProp
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
     >
-      <motion.div
-        layout
+      {/* Remove `layout` prop here — it triggers framer-motion layout recalculations
+          that break the root AnimatePresence's exit animation choreography via mode="wait",
+          causing the PageTransition motion.div to get stuck at initial state (opacity: 0)
+          when navigating away from this page. Since this motion.div has no layoutId sibling,
+          layout tracking is unnecessary. */}
+      <div
         className={`rounded-xl shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden ${
           isPinned ? 'bg-white border-l-4 border-gold-500' : 'bg-white'
         }`}
