@@ -354,94 +354,142 @@ class AdminApiController extends Controller
 
     public function announcementStore(Request $request): JsonResponse
     {
-        $data = $request->validate([
-            'title' => 'required|string|max:150',
-            'content' => 'required|string',
-            'excerpt' => 'nullable|string|max:250',
-            'published_at' => 'nullable|date',
-            'image' => 'nullable|image|max:2048',
-        ]);
+        Log::info('announcementStore: START', ['user_id' => auth()->id()]);
 
-        // Handle boolean fields separately (FormData sends strings "true"/"false")
-        $data['slug'] = \Str::slug($request->title) . '-' . time();
-        $data['is_pinned'] = filter_var($request->input('is_pinned'), FILTER_VALIDATE_BOOLEAN) ?: false;
-        $data['is_published'] = filter_var($request->input('is_published'), FILTER_VALIDATE_BOOLEAN) ?: true;
-        $data['published_at'] = $request->published_at ?? now();
+        try {
+            $data = $request->validate([
+                'title' => 'required|string|max:150',
+                'content' => 'required|string',
+                'excerpt' => 'nullable|string|max:250',
+                'published_at' => 'nullable|date',
+                'image' => 'nullable|image|max:2048',
+            ]);
 
-        // Handle image upload
-        if ($request->hasFile('image')) {
-            $result = $this->uploadToCloudinaryWithPublicId($request->file('image'), 'kartar/announcements');
-            $data['image_url'] = $result['url'];
-            $data['image_public_id'] = $result['public_id'];
+            Log::info('announcementStore: validation passed', ['data_keys' => array_keys($data)]);
+
+            // Handle boolean fields separately (FormData sends strings "true"/"false")
+            $data['slug'] = \Str::slug($request->title) . '-' . time();
+            $data['is_pinned'] = filter_var($request->input('is_pinned'), FILTER_VALIDATE_BOOLEAN) ?: false;
+            $data['is_published'] = filter_var($request->input('is_published'), FILTER_VALIDATE_BOOLEAN) ?: true;
+            $data['published_at'] = $request->published_at ?? now();
+
+            Log::info('announcementStore: processed fields', [
+                'is_pinned' => $data['is_pinned'],
+                'is_published' => $data['is_published'],
+                'has_image' => $request->hasFile('image'),
+            ]);
+
+            // Handle image upload
+            if ($request->hasFile('image')) {
+                Log::info('announcementStore: uploading image to Cloudinary');
+                $result = $this->uploadToCloudinaryWithPublicId($request->file('image'), 'kartar/announcements');
+                $data['image_url'] = $result['url'];
+                $data['image_public_id'] = $result['public_id'];
+                Log::info('announcementStore: image uploaded', ['url' => $data['image_url']]);
+            }
+
+            // Set user_id from authenticated admin
+            $data['user_id'] = auth()->id();
+            Log::info('announcementStore: creating announcement', ['user_id' => $data['user_id']]);
+
+            $announcement = Announcement::create($data);
+            Log::info('announcementStore: created', ['id' => $announcement->id, 'slug' => $announcement->slug]);
+
+            // Invalidate all announcement-related caches using the shared helper
+            $this->invalidateAnnouncementCaches($announcement->slug);
+            Log::info('announcementStore: caches invalidated');
+
+            // Trigger on-demand ISR revalidation on the Next.js frontend
+            Log::info('announcementStore: calling triggerFrontendRevalidation');
+            $this->triggerFrontendRevalidation(['/pengumuman', '/'], ['announcements', 'home']);
+            Log::info('announcementStore: DONE', ['id' => $announcement->id]);
+
+            return response()->json(['success' => true, 'data' => $announcement, 'message' => 'Pengumuman berhasil dibuat.']);
+
+        } catch (\Throwable $e) {
+            Log::error('announcementStore: EXCEPTION', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'trace' => $e->getTraceAsString(),
+            ]);
+            throw $e; // Re-throw so Laravel's exception handler also processes it
         }
-
-        // Set user_id from authenticated admin
-        $data['user_id'] = auth()->id();
-
-        $announcement = Announcement::create($data);
-
-        // Invalidate all announcement-related caches using the shared helper
-        $this->invalidateAnnouncementCaches($announcement->slug);
-
-        // Trigger on-demand ISR revalidation on the Next.js frontend
-        $this->triggerFrontendRevalidation(['/pengumuman', '/'], ['announcements', 'home']);
-
-        return response()->json(['success' => true, 'data' => $announcement, 'message' => 'Pengumuman berhasil dibuat.']);
     }
 
     public function announcementUpdate(Request $request, int $id): JsonResponse
     {
-        $announcement = Announcement::findOrFail($id);
+        Log::info('announcementUpdate: START', ['id' => $id, 'user_id' => auth()->id()]);
 
-        $data = $request->validate([
-            'title' => 'required|string|max:150',
-            'content' => 'required|string',
-            'excerpt' => 'nullable|string|max:250',
-            'published_at' => 'nullable|date',
-            'image' => 'nullable|image|max:2048',
-            'remove_image' => 'nullable|boolean',
-        ]);
+        try {
+            $announcement = Announcement::findOrFail($id);
+            Log::info('announcementUpdate: found announcement', ['slug' => $announcement->slug]);
 
-        // Handle boolean fields separately (FormData sends strings "true"/"false")
-        $data['is_pinned'] = filter_var($request->input('is_pinned'), FILTER_VALIDATE_BOOLEAN);
-        $data['is_published'] = filter_var($request->input('is_published'), FILTER_VALIDATE_BOOLEAN);
-        $removeImage = filter_var($request->input('remove_image'), FILTER_VALIDATE_BOOLEAN);
+            $data = $request->validate([
+                'title' => 'required|string|max:150',
+                'content' => 'required|string',
+                'excerpt' => 'nullable|string|max:250',
+                'published_at' => 'nullable|date',
+                'image' => 'nullable|image|max:2048',
+                'remove_image' => 'nullable|boolean',
+            ]);
 
-        // Handle new image upload
-        if ($request->hasFile('image')) {
-            // Delete old image if exists
-            if ($announcement->image_public_id) {
+            // Handle boolean fields separately (FormData sends strings "true"/"false")
+            $data['is_pinned'] = filter_var($request->input('is_pinned'), FILTER_VALIDATE_BOOLEAN);
+            $data['is_published'] = filter_var($request->input('is_published'), FILTER_VALIDATE_BOOLEAN);
+            $removeImage = filter_var($request->input('remove_image'), FILTER_VALIDATE_BOOLEAN);
+
+            // Handle new image upload
+            if ($request->hasFile('image')) {
+                // Delete old image if exists
+                if ($announcement->image_public_id) {
+                    try {
+                        $this->deleteFromCloudinary($announcement->image_public_id);
+                    } catch (\Exception $e) {
+                        \Log::error('Failed to delete old announcement image: ' . $e->getMessage());
+                    }
+                }
+                Log::info('announcementUpdate: uploading new image');
+                $result = $this->uploadToCloudinaryWithPublicId($request->file('image'), 'kartar/announcements');
+                $data['image_url'] = $result['url'];
+                $data['image_public_id'] = $result['public_id'];
+                Log::info('announcementUpdate: image uploaded', ['url' => $data['image_url']]);
+            }
+
+            // Handle explicit image removal
+            if ($removeImage && $announcement->image_public_id) {
                 try {
                     $this->deleteFromCloudinary($announcement->image_public_id);
                 } catch (\Exception $e) {
-                    \Log::error('Failed to delete old announcement image: ' . $e->getMessage());
+                    \Log::error('Failed to delete announcement image: ' . $e->getMessage());
                 }
+                $data['image_url'] = null;
+                $data['image_public_id'] = null;
             }
-            $result = $this->uploadToCloudinaryWithPublicId($request->file('image'), 'kartar/announcements');
-            $data['image_url'] = $result['url'];
-            $data['image_public_id'] = $result['public_id'];
+
+            Log::info('announcementUpdate: updating', ['data_keys' => array_keys($data)]);
+            $announcement->update($data);
+            Log::info('announcementUpdate: updated', ['id' => $announcement->id]);
+
+            // Invalidate all announcement-related caches using the shared helper
+            $this->invalidateAnnouncementCaches($announcement->slug);
+            Log::info('announcementUpdate: caches invalidated');
+
+            // Trigger on-demand ISR revalidation on the Next.js frontend
+            Log::info('announcementUpdate: calling triggerFrontendRevalidation');
+            $this->triggerFrontendRevalidation(['/pengumuman', '/'], ['announcements', 'home']);
+            Log::info('announcementUpdate: DONE');
+
+            return response()->json(['success' => true, 'data' => $announcement, 'message' => 'Pengumuman berhasil diupdate.']);
+
+        } catch (\Throwable $e) {
+            Log::error('announcementUpdate: EXCEPTION', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+            throw $e;
         }
-
-        // Handle explicit image removal
-        if ($removeImage && $announcement->image_public_id) {
-            try {
-                $this->deleteFromCloudinary($announcement->image_public_id);
-            } catch (\Exception $e) {
-                \Log::error('Failed to delete announcement image: ' . $e->getMessage());
-            }
-            $data['image_url'] = null;
-            $data['image_public_id'] = null;
-        }
-
-        $announcement->update($data);
-
-        // Invalidate all announcement-related caches using the shared helper
-        $this->invalidateAnnouncementCaches($announcement->slug);
-
-        // Trigger on-demand ISR revalidation on the Next.js frontend
-        $this->triggerFrontendRevalidation(['/pengumuman', '/'], ['announcements', 'home']);
-
-        return response()->json(['success' => true, 'data' => $announcement, 'message' => 'Pengumuman berhasil diupdate.']);
     }
 
     public function announcementDestroy(int $id): JsonResponse
