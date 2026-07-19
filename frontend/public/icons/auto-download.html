@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Auto Download Icon AE</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      background: #f5f5f5;
+      font-family: Arial, sans-serif;
+      padding: 20px;
+    }
+    h2 { color: #111D4A; }
+    p { color: #666; }
+    .success { color: green; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h2>⏳ Sedang menggenerate icon...</h2>
+  <p>Jangan tutup halaman ini</p>
+  <p class="success" id="status"></p>
+
+  <canvas id="c192" width="192" height="192" style="display:none"></canvas>
+  <canvas id="c512" width="512" height="512" style="display:none"></canvas>
+
+  <script>
+    function createIcon(size) {
+      const canvas = document.getElementById('c' + size);
+      canvas.width = size;
+      canvas.height = size;
+      const ctx = canvas.getContext('2d');
+
+      // Background gradient (gold)
+      const grad = ctx.createLinearGradient(0, 0, size, size);
+      grad.addColorStop(0, '#D4A84B');
+      grad.addColorStop(1, '#B8922A');
+
+      // Rounded rectangle
+      const r = size * 0.15;
+      const p = size * 0.08;
+      ctx.beginPath();
+      ctx.moveTo(p + r, p);
+      ctx.lineTo(size - p - r, p);
+      ctx.quadraticCurveTo(size - p, p, size - p, p + r);
+      ctx.lineTo(size - p, size - p - r);
+      ctx.quadraticCurveTo(size - p, size - p, size - p - r, size - p);
+      ctx.lineTo(p + r, size - p);
+      ctx.quadraticCurveTo(p, size - p, p, size - p - r);
+      ctx.lineTo(p, p + r);
+      ctx.quadraticCurveTo(p, p, p + r, p);
+      ctx.closePath();
+      ctx.fillStyle = grad;
+      ctx.fill();
+
+      // Text AE
+      ctx.fillStyle = '#111D4A';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.font = 'bold ' + (size * 0.38) + 'px Arial';
+      ctx.fillText('AE', size / 2, size / 2 + size * 0.02);
+    }
+
+    function download(size) {
+      const canvas = document.getElementById('c' + size);
+      const link = document.createElement('a');
+      link.download = 'icon-' + size + '.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    }
+
+    // Generate dan download
+    createIcon(192);
+    createIcon(512);
+
+    setTimeout(() => {
+      download(192);
+      document.getElementById('status').textContent = '✅ icon-192.png terdownload!';
+    }, 300);
+
+    setTimeout(() => {
+      download(512);
+      document.getElementById('status').textContent = '✅✅ Kedua icon terdownload!';
+    }, 800);
+
+    setTimeout(() => {
+      document.body.innerHTML += '<p style="margin-top:20px">📁 Pindahkan kedua file ke <code>frontend/public/icons/</code></p>';
+    }, 1200);
+  </script>
+</body>
+</html>
