@@ -284,7 +284,7 @@ export default async function HomePage() {
                   <span className="text-xs text-gray-400">
                     {new Date(ann.published_at).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                   </span>
-                  <Link href={`/pengumuman/${ann.slug}`} className="text-sm text-amber-600 hover:text-amber-700 font-medium flex items-center gap-1">
+                  <Link href="/pengumuman" className="text-sm text-amber-600 hover:text-amber-700 font-medium flex items-center gap-1">
                     Baca selengkapnya
                     <ArrowRight className="w-4 h-4" />
                   </Link>

@@ -86,6 +86,12 @@ class AdminApiController extends Controller
             return;
         }
 
+        Log::info('Frontend revalidation triggered', [
+            'frontend_url' => $frontendUrl,
+            'paths' => $paths,
+            'tags' => $tags,
+        ]);
+
         try {
             Http::withHeaders([
                 'Authorization' => "Bearer {$secret}",
