@@ -1,5 +1,5 @@
 import { Metadata } from 'next';
-import { mockAnnouncements } from '@/lib/api';
+import { mockAnnouncements, Announcement } from '@/lib/api';
 import { AnnouncementCard } from '@/components/ui/announcement-card';
 import { Megaphone, Pin } from 'lucide-react';
 
@@ -15,15 +15,16 @@ export const metadata: Metadata = {
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
 
 // Direct fetch with cache tag for ISR revalidation
-async function getAnnouncementsData() {
+async function getAnnouncementsData(): Promise<Announcement[]> {
   try {
     const res = await fetch(`${API_BASE_URL}/announcements?page=1&per_page=20`, {
       next: { revalidate: 60, tags: ['announcements'] },
       headers: { 'Accept': 'application/json' },
     });
     if (!res.ok) return mockAnnouncements;
-    const data = await res.json();
-    return (data.success && Array.isArray(data.data)) ? data.data : mockAnnouncements;
+    const json = await res.json();
+    const data = json.data as Announcement[];
+    return (json.success && Array.isArray(data)) ? data : mockAnnouncements;
   } catch {
     return mockAnnouncements;
   }
