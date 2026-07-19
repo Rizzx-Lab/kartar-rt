@@ -33,18 +33,6 @@ const getImageUrl = (path: string | null): string | null => {
   return `http://localhost:8000/storage/${path}`;
 };
 
-async function triggerRevalidate() {
-  try {
-    await fetch('/api/revalidate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ path: '/tentang-kami', tag: 'about' }),
-    });
-  } catch (revalidateError) {
-    console.log('Revalidation failed, page will update in next ISR cycle');
-  }
-}
-
 export default function AdminOrganizationPage() {
   const [members, setMembers] = useState<OrganizationMember[]>(defaultMembers);
   const [isLoading, setIsLoading] = useState(true);
@@ -155,7 +143,6 @@ export default function AdminOrganizationPage() {
       if (response.success) {
         closeModal();
         fetchMembers();
-        await triggerRevalidate();
       } else {
         alert(response.message || 'Terjadi kesalahan');
       }
@@ -172,7 +159,6 @@ export default function AdminOrganizationPage() {
         const response = await deleteMember(id);
         if (response.success) {
           setMembers(prev => prev.filter(m => m.id !== id));
-          await triggerRevalidate();
         } else {
           alert(response.message || 'Gagal menghapus');
         }
@@ -197,7 +183,6 @@ export default function AdminOrganizationPage() {
         setMembers(prev =>
           prev.map(m => m.id === member.id ? { ...m, is_active: !m.is_active } : m)
         );
-        await triggerRevalidate();
       }
     } catch (err) {
       console.error('Toggle error:', err);

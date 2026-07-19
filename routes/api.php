@@ -18,7 +18,9 @@ Route::prefix('v1')->name('api.')->group(function () {
     // ========================
     // AUTHENTICATION
     // ========================
-    Route::post('/login', [AuthController::class, 'login'])->name('login');
+    Route::post('/login', [AuthController::class, 'login'])
+        ->middleware('throttle:5,1')
+        ->name('login');
     Route::post('/logout', [AuthController::class, 'logout'])->name('logout')->middleware('auth:sanctum');
     Route::get('/me', [AuthController::class, 'me'])->name('me')->middleware('auth:sanctum');
 
@@ -37,7 +39,9 @@ Route::prefix('v1')->name('api.')->group(function () {
     Route::get('/about', [PublicApiController::class, 'about'])->name('about');
     Route::get('/contact', [PublicApiController::class, 'contactInfo'])->name('contact.info');
     Route::get('/settings', [PublicApiController::class, 'settings'])->name('settings');
-    Route::post('/contact', [PublicApiController::class, 'submitContact'])->name('contact.submit');
+    Route::post('/contact', [PublicApiController::class, 'submitContact'])
+        ->middleware('throttle:3,1')
+        ->name('contact.submit');
 
     // ========================
     // PUSH SUBSCRIPTIONS

@@ -6,11 +6,100 @@ use App\Http\Controllers\Controller;
 use App\Traits\UploadsToCloudinary;
 use App\Models\{Program, ProgramSession, Announcement, Gallery, GalleryPhoto, Contact, User, OrganizationMember, SiteSetting};
 use Illuminate\Http\{Request, JsonResponse};
-use Illuminate\Support\Facades\{Storage, File, Cache, Log};
+use Illuminate\Support\Facades\{Storage, File, Cache, Log, Http};
 
 class AdminApiController extends Controller
 {
     use UploadsToCloudinary;
+
+    // ==========================================
+    // CACHE INVALIDATION HELPERS
+    // ==========================================
+
+    /**
+     * Invalidate all announcement-related caches.
+     * Must cover every per_page value used across the frontend:
+     *   - per_page=6   (home page)
+     *   - per_page=10  (api.ts default)
+     *   - per_page=20  (pengumuman page)
+     * plus the per-program/program-list cache.
+     */
+    private function invalidateAnnouncementCaches(?string $slug = null): void
+    {
+        // All paginated announcement list keys
+        foreach ([6, 10, 20] as $perPage) {
+            Cache::forget("api:announcements:1:{$perPage}");
+        }
+        // Individual announcement cache (if slug provided)
+        if ($slug) {
+            Cache::forget("api:announcement:{$slug}");
+        }
+        // Home page embeds announcements
+        Cache::forget('api:home');
+    }
+
+    /**
+     * Invalidate all gallery-related caches.
+     * Must cover:
+     *   - recent-photos with limit=30 (galeri page)
+     *   - archives
+     *   - paginated galleries (page 1-3 at perPage=12)
+     *   - individual gallery cache
+     */
+    private function invalidateGalleryCaches(?int $galleryId = null): void
+    {
+        Cache::forget('api:recent-photos:30');
+        Cache::forget('api:archives');
+        foreach ([6, 12] as $perPage) {
+            foreach (range(1, 3) as $page) {
+                Cache::forget("api:galleries:{$page}:{$perPage}");
+            }
+        }
+        if ($galleryId) {
+            Cache::forget("api:gallery:{$galleryId}");
+        }
+    }
+
+    /**
+     * Invalidate all program-related caches.
+     */
+    private function invalidateProgramCaches(?string $slug = null): void
+    {
+        Cache::forget('api:programs');
+        if ($slug) {
+            Cache::forget("api:program:{$slug}");
+        }
+    }
+
+    /**
+     * Trigger on-demand ISR revalidation on the Next.js frontend.
+     * Called server-to-server from Laravel after each successful mutation.
+     * The REVALIDATE_SECRET lives only in server-side env vars — never exposed to browsers.
+     */
+    private function triggerFrontendRevalidation(array $paths = [], array $tags = []): void
+    {
+        $frontendUrl = config('app.frontend_url');
+        $secret = config('app.revalidate_secret');
+
+        if (!$frontendUrl || !$secret) {
+            Log::warning('Frontend revalidation skipped: FRONTEND_URL or REVALIDATE_SECRET not configured.');
+            return;
+        }
+
+        try {
+            Http::withHeaders([
+                'Authorization' => "Bearer {$secret}",
+                'Content-Type' => 'application/json',
+                'Accept' => 'application/json',
+            ])->post("{$frontendUrl}/api/revalidate", [
+                'paths' => $paths,
+                'tags' => $tags,
+            ]);
+        } catch (\Exception $e) {
+            // Log but don't fail — the ISR fallback (revalidate=60) will handle stale data
+            Log::error('Frontend revalidation failed: ' . $e->getMessage());
+        }
+    }
 
     // ==========================================
     // PROGRAMS
@@ -42,12 +131,21 @@ class AdminApiController extends Controller
 
         $program = Program::create($data);
 
+        // Invalidate public program caches
+        $this->invalidateProgramCaches();
+
+        // Trigger on-demand ISR revalidation on the Next.js frontend
+        $this->triggerFrontendRevalidation(['/kegiatan'], ['programs']);
+
         return response()->json(['success' => true, 'data' => $program, 'message' => 'Program berhasil dibuat.']);
     }
 
     public function programUpdate(Request $request, int $id): JsonResponse
     {
         $program = Program::findOrFail($id);
+
+        // Capture old slug before update so we can invalidate both
+        $oldSlug = $program->slug;
 
         $data = $request->validate([
             'name' => 'required|string|max:100',
@@ -74,12 +172,22 @@ class AdminApiController extends Controller
 
         $program->update($data);
 
+        // Invalidate public program caches (both old and new slug in case slug changed)
+        $this->invalidateProgramCaches($oldSlug);
+        if ($oldSlug !== $program->slug) {
+            $this->invalidateProgramCaches($program->slug);
+        }
+
+        // Trigger on-demand ISR revalidation on the Next.js frontend
+        $this->triggerFrontendRevalidation(['/kegiatan'], ['programs']);
+
         return response()->json(['success' => true, 'data' => $program, 'message' => 'Program berhasil diupdate.']);
     }
 
     public function programDestroy(int $id): JsonResponse
     {
         $program = Program::findOrFail($id);
+        $slug = $program->slug; // Capture before deletion
 
         // Delete cover image
         if ($program->cover_image) {
@@ -87,6 +195,12 @@ class AdminApiController extends Controller
         }
 
         $program->delete();
+
+        // Invalidate public program caches
+        $this->invalidateProgramCaches($slug);
+
+        // Trigger on-demand ISR revalidation on the Next.js frontend
+        $this->triggerFrontendRevalidation(['/kegiatan'], ['programs']);
 
         return response()->json(['success' => true, 'message' => 'Program berhasil dihapus.']);
     }
@@ -119,6 +233,7 @@ class AdminApiController extends Controller
 
         // Create announcement if requested
         $announcementCreated = false;
+        $createdSlug = null;
         $createAnnouncement = $request->boolean('create_announcement');
         if ($createAnnouncement) {
             // Build content for announcement
@@ -130,7 +245,7 @@ class AdminApiController extends Controller
                 ? $session->description
                 : "Sesi {$session->title} telah dijadwalkan pada {$sessionDate} di {$sessionLocation}.";
 
-            Announcement::create([
+            $announcement = Announcement::create([
                 'user_id' => auth()->id(),
                 'session_id' => $session->id, // Link to the session
                 'title' => $session->title,
@@ -141,12 +256,27 @@ class AdminApiController extends Controller
                 'is_pinned' => false,
                 'published_at' => now(),
             ]);
+            $createdSlug = $announcement->slug;
             $announcementCreated = true;
+
+            // Invalidate announcement caches
+            $this->invalidateAnnouncementCaches($createdSlug);
         }
+
+        // Invalidate the parent program's cache (session list changed)
+        $this->invalidateProgramCaches($program->slug);
 
         $message = $announcementCreated
             ? 'Sesi berhasil dibuat dan dipublikasikan sebagai pengumuman.'
             : 'Sesi berhasil dibuat.';
+
+        // Trigger on-demand ISR revalidation on the Next.js frontend
+        // Revalidate both programs AND announcements (if announcement was created)
+        if ($announcementCreated) {
+            $this->triggerFrontendRevalidation(['/kegiatan', '/'], ['programs', 'announcements', 'home']);
+        } else {
+            $this->triggerFrontendRevalidation(['/kegiatan'], ['programs']);
+        }
 
         return response()->json(['success' => true, 'data' => $session, 'message' => $message, 'announcement_created' => $announcementCreated]);
     }
@@ -166,6 +296,15 @@ class AdminApiController extends Controller
 
         $session->update($data);
 
+        // Invalidate the parent program's cache (session list changed)
+        $program = $session->program;
+        if ($program) {
+            $this->invalidateProgramCaches($program->slug);
+        }
+
+        // Trigger on-demand ISR revalidation on the Next.js frontend
+        $this->triggerFrontendRevalidation(['/kegiatan'], ['programs']);
+
         return response()->json(['success' => true, 'data' => $session, 'message' => 'Sesi berhasil diupdate.']);
     }
 
@@ -173,11 +312,24 @@ class AdminApiController extends Controller
     {
         $session = ProgramSession::where('program_id', $programId)->findOrFail($sessionId);
 
+        // Invalidate the parent program's cache BEFORE deletion
+        $program = $session->program;
+        $programSlug = $program?->slug;
+
         // Delete related announcement if exists (cascade will handle this via foreign key)
         // But let's also manually delete to be sure
         Announcement::where('session_id', $sessionId)->delete();
 
         $session->delete();
+
+        // Invalidate the parent program's cache and announcement caches
+        if ($programSlug) {
+            $this->invalidateProgramCaches($programSlug);
+        }
+        $this->invalidateAnnouncementCaches();
+
+        // Trigger on-demand ISR revalidation on the Next.js frontend
+        $this->triggerFrontendRevalidation(['/kegiatan', '/'], ['programs', 'announcements', 'home']);
 
         return response()->json(['success' => true, 'message' => 'Sesi berhasil dihapus.']);
     }
@@ -222,10 +374,11 @@ class AdminApiController extends Controller
 
         $announcement = Announcement::create($data);
 
-        // Invalidate public API caches
-        Cache::forget('api:home');
-        Cache::forget('api:announcements:1:10'); // First page common cache key
-        Cache::forget('api:announcement:' . $announcement->slug);
+        // Invalidate all announcement-related caches using the shared helper
+        $this->invalidateAnnouncementCaches($announcement->slug);
+
+        // Trigger on-demand ISR revalidation on the Next.js frontend
+        $this->triggerFrontendRevalidation(['/pengumuman', '/'], ['announcements', 'home']);
 
         return response()->json(['success' => true, 'data' => $announcement, 'message' => 'Pengumuman berhasil dibuat.']);
     }
@@ -276,10 +429,11 @@ class AdminApiController extends Controller
 
         $announcement->update($data);
 
-        // Invalidate public API caches
-        Cache::forget('api:home');
-        Cache::forget('api:announcements:1:10'); // First page common cache key
-        Cache::forget('api:announcement:' . $announcement->slug);
+        // Invalidate all announcement-related caches using the shared helper
+        $this->invalidateAnnouncementCaches($announcement->slug);
+
+        // Trigger on-demand ISR revalidation on the Next.js frontend
+        $this->triggerFrontendRevalidation(['/pengumuman', '/'], ['announcements', 'home']);
 
         return response()->json(['success' => true, 'data' => $announcement, 'message' => 'Pengumuman berhasil diupdate.']);
     }
@@ -301,10 +455,11 @@ class AdminApiController extends Controller
 
         $announcement->delete();
 
-        // Invalidate public API caches
-        Cache::forget('api:home');
-        Cache::forget('api:announcements:1:10'); // First page common cache key
-        Cache::forget('api:announcement:' . $slug);
+        // Invalidate all announcement-related caches using the shared helper
+        $this->invalidateAnnouncementCaches($slug);
+
+        // Trigger on-demand ISR revalidation on the Next.js frontend
+        $this->triggerFrontendRevalidation(['/pengumuman', '/'], ['announcements', 'home']);
 
         return response()->json(['success' => true, 'message' => 'Pengumuman berhasil dihapus.']);
     }
@@ -357,6 +512,12 @@ class AdminApiController extends Controller
 
         $gallery = Gallery::create($data);
 
+        // Invalidate gallery-related caches
+        $this->invalidateGalleryCaches($gallery->id);
+
+        // Trigger on-demand ISR revalidation on the Next.js frontend
+        $this->triggerFrontendRevalidation(['/galeri'], ['galleries']);
+
         return response()->json(['success' => true, 'data' => $gallery, 'message' => 'Galeri berhasil dibuat.']);
     }
 
@@ -383,6 +544,12 @@ class AdminApiController extends Controller
 
         $gallery->update($data);
 
+        // Invalidate gallery-related caches
+        $this->invalidateGalleryCaches($gallery->id);
+
+        // Trigger on-demand ISR revalidation on the Next.js frontend
+        $this->triggerFrontendRevalidation(['/galeri'], ['galleries']);
+
         return response()->json(['success' => true, 'data' => $gallery, 'message' => 'Galeri berhasil diupdate.']);
     }
 
@@ -403,6 +570,12 @@ class AdminApiController extends Controller
         }
 
         $gallery->delete();
+
+        // Invalidate gallery-related caches
+        $this->invalidateGalleryCaches($id);
+
+        // Trigger on-demand ISR revalidation on the Next.js frontend
+        $this->triggerFrontendRevalidation(['/galeri'], ['galleries']);
 
         return response()->json(['success' => true, 'message' => 'Galeri berhasil dihapus.']);
     }
@@ -429,6 +602,12 @@ class AdminApiController extends Controller
             ]);
         }
 
+        // Invalidate gallery-related caches (photos changed, so recent-photos and archive lists changed)
+        $this->invalidateGalleryCaches($gallery->id);
+
+        // Trigger on-demand ISR revalidation on the Next.js frontend
+        $this->triggerFrontendRevalidation(['/galeri'], ['galleries']);
+
         return response()->json(['success' => true, 'data' => $photos, 'message' => count($photos) . ' foto berhasil diupload.']);
     }
 
@@ -451,6 +630,9 @@ class AdminApiController extends Controller
     {
         $photo = GalleryPhoto::findOrFail($id);
 
+        // Capture gallery id before deletion for cache invalidation
+        $galleryId = $photo->gallery_id;
+
         if ($photo->file_path) {
             try {
                 $this->deleteFromCloudinary($photo->file_path);
@@ -461,6 +643,14 @@ class AdminApiController extends Controller
         }
 
         $photo->delete();
+
+        // Invalidate gallery-related caches
+        if ($galleryId) {
+            $this->invalidateGalleryCaches($galleryId);
+        }
+
+        // Trigger on-demand ISR revalidation on the Next.js frontend
+        $this->triggerFrontendRevalidation(['/galeri'], ['galleries']);
 
         return response()->json(['success' => true, 'message' => 'Foto berhasil dihapus.']);
     }
@@ -556,6 +746,17 @@ class AdminApiController extends Controller
             return response()->json(['success' => false, 'message' => 'Tidak bisa menghapus akun sendiri.'], 400);
         }
 
+        // Prevent deleting the last super_admin
+        if ($user->role === 'super_admin') {
+            $superAdminCount = User::where('role', 'super_admin')->count();
+            if ($superAdminCount <= 1) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tidak dapat menghapus super_admin terakhir. Minimal harus ada 1 super_admin.'
+                ], 403);
+            }
+        }
+
         $user->delete();
 
         return response()->json(['success' => true, 'message' => 'User berhasil dihapus.']);
@@ -589,6 +790,9 @@ class AdminApiController extends Controller
 
         $member = OrganizationMember::create($data);
 
+        // Trigger on-demand ISR revalidation on the Next.js frontend
+        $this->triggerFrontendRevalidation(['/tentang-kami'], ['about']);
+
         return response()->json(['success' => true, 'data' => $member, 'message' => 'Anggota berhasil ditambahkan.']);
     }
 
@@ -619,6 +823,9 @@ class AdminApiController extends Controller
 
         $member->update($data);
 
+        // Trigger on-demand ISR revalidation on the Next.js frontend
+        $this->triggerFrontendRevalidation(['/tentang-kami'], ['about']);
+
         return response()->json(['success' => true, 'data' => $member, 'message' => 'Anggota berhasil diupdate.']);
     }
 
@@ -635,6 +842,9 @@ class AdminApiController extends Controller
         }
 
         $member->delete();
+
+        // Trigger on-demand ISR revalidation on the Next.js frontend
+        $this->triggerFrontendRevalidation(['/tentang-kami'], ['about']);
 
         return response()->json(['success' => true, 'message' => 'Anggota berhasil dihapus.']);
     }
@@ -710,10 +920,8 @@ class AdminApiController extends Controller
                 }
             }
             $aboutImageUrl = $this->uploadToCloudinary($request->file('about_image'), 'kartar/settings');
-            SiteSetting::updateOrCreate(
-                ['key' => 'about_image'],
-                ['value' => $aboutImageUrl, 'type' => 'image']
-            );
+            // Use SiteSetting::set() to ensure cache is invalidated
+            SiteSetting::set('about_image', $aboutImageUrl);
         }
 
         // Save other settings (except about_image which is handled separately)
@@ -737,11 +945,13 @@ class AdminApiController extends Controller
             }
             // For other fields, keep as is
 
-            SiteSetting::updateOrCreate(
-                ['key' => $key],
-                ['value' => is_string($value) ? $value : (string) $value, 'type' => 'text']
-            );
+            // Use SiteSetting::set() to ensure cache is invalidated
+            SiteSetting::set($key, is_string($value) ? $value : (string) $value);
         }
+
+        // Trigger on-demand ISR revalidation on the Next.js frontend
+        // Settings affect home page, about page, and contact page
+        $this->triggerFrontendRevalidation(['/', '/tentang-kami', '/kontak'], ['home', 'about', 'contact', 'settings']);
 
         return response()->json(['success' => true, 'message' => 'Pengaturan berhasil disimpan.']);
     }

@@ -16,6 +16,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'admin'      => \App\Http\Middleware\AdminMiddleware::class,
             'superadmin' => \App\Http\Middleware\SuperAdminMiddleware::class,
         ]);
+
+        // Prevent CDN/edge caching of all public API responses.
+        // This ensures only Laravel's file-cache and Next.js ISR control freshness.
+        $middleware->api(prepend: [
+            \App\Http\Middleware\PreventApiCacheMiddleware::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         //

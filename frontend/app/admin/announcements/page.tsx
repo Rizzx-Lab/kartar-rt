@@ -27,18 +27,6 @@ interface FormData {
   published_at: string;
 }
 
-async function triggerRevalidate() {
-  try {
-    await fetch('/api/revalidate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ path: '/pengumuman', tag: 'announcements' }),
-    });
-  } catch (revalidateError) {
-    console.log('Revalidation failed, page will update in next ISR cycle');
-  }
-}
-
 export default function AdminAnnouncementsPage() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -152,7 +140,6 @@ export default function AdminAnnouncementsPage() {
     if (response.success) {
       setShowModal(false);
       fetchAnnouncements();
-      await triggerRevalidate();
     } else {
       alert(response.message || 'Terjadi kesalahan');
     }
@@ -164,7 +151,6 @@ export default function AdminAnnouncementsPage() {
       const response = await deleteAnnouncement(id);
       if (response.success) {
         fetchAnnouncements();
-        await triggerRevalidate();
       } else {
         alert(response.message || 'Gagal menghapus');
       }

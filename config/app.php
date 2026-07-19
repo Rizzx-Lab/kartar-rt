@@ -123,4 +123,30 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Frontend URL (for server-to-server revalidation)
+    |--------------------------------------------------------------------------
+    |
+    | The public URL of the Next.js frontend. Used by Laravel to call the
+    | /api/revalidate endpoint server-to-server after admin mutations.
+    | Stored in .env as FRONTEND_URL — never exposed to browsers.
+    |
+    */
+
+    'frontend_url' => env('FRONTEND_URL'),
+
+    /*
+    |--------------------------------------------------------------------------
+    | Revalidation Secret
+    |--------------------------------------------------------------------------
+    |
+    | Shared secret for on-demand ISR revalidation of the Next.js frontend.
+    | Stored in .env as REVALIDATE_SECRET — never sent to browsers.
+    | Used server-side only for the /api/revalidate endpoint.
+    |
+    */
+
+    'revalidate_secret' => env('REVALIDATE_SECRET'),
+
 ];

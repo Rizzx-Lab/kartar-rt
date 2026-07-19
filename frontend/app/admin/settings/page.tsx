@@ -118,16 +118,6 @@ export default function AdminSettingsPage() {
           }
           setAboutImageFile(null);
         }
-        // Trigger revalidation untuk halaman Tentang langsung berubah
-        try {
-          await fetch('/api/revalidate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ path: '/tentang-kami', tag: 'about' }),
-          });
-        } catch (revalidateError) {
-          console.log('Revalidation failed, page will update in next ISR cycle');
-        }
       } else {
         console.log('Save failed:', response.message);
         setError(response.message || 'Gagal menyimpan pengaturan.');
