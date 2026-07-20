@@ -3,7 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
-use App\Models\{Announcement, Program, ProgramSession, Gallery, GalleryPhoto, OrganizationMember, SiteSetting, Contact, User};
+use App\Models\{Announcement, Program, ProgramSession, Gallery, GalleryPhoto, GalleryVideo, OrganizationMember, SiteSetting, Contact, User};
 use App\Notifications\NewContactMessageNotification;
 use Illuminate\Http\{Request, JsonResponse};
 use Illuminate\Support\Facades\{Cache, Storage};
@@ -282,6 +282,42 @@ class PublicApiController extends Controller
                     'caption' => $p->caption,
                     'order' => $p->order,
                 ]),
+            ],
+        ]);
+    }
+
+    // ========================
+    // FEATURED VIDEO
+    // ========================
+
+    /**
+     * Get the currently active featured video (if any).
+     *
+     * The gallery page layout depends on whether a featured video is active,
+     * so this endpoint should be cached and invalidated alongside the
+     * gallery-related caches.
+     */
+    public function featuredVideo(): JsonResponse
+    {
+        $video = GalleryVideo::active()->first();
+
+        if (!$video) {
+            return response()->json([
+                'success' => true,
+                'data'    => null,
+            ]);
+        }
+
+        return response()->json([
+            'success' => true,
+            'data'    => [
+                'id'            => $video->id,
+                'title'         => $video->title,
+                'video_url'     => $video->video_url,
+                'thumbnail_url' => $video->thumbnail_url,
+                'duration'      => $video->duration,
+                'is_portrait'   => $video->is_portrait,
+                'expires_at'    => $video->expires_at->toIso8601String(),
             ],
         ]);
     }

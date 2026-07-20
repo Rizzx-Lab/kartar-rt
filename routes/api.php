@@ -36,6 +36,7 @@ Route::prefix('v1')->name('api.')->group(function () {
     Route::get('/galleries/archives', [PublicApiController::class, 'archives'])->name('galleries.archives');
     Route::get('/galleries', [PublicApiController::class, 'galleries'])->name('galleries.index');
     Route::get('/galleries/{id}', [PublicApiController::class, 'gallery'])->name('galleries.show');
+    Route::get('/featured-video', [PublicApiController::class, 'featuredVideo'])->name('featured-video');
     Route::get('/about', [PublicApiController::class, 'about'])->name('about');
     Route::get('/contact', [PublicApiController::class, 'contactInfo'])->name('contact.info');
     Route::get('/settings', [PublicApiController::class, 'settings'])->name('settings');
@@ -82,6 +83,10 @@ Route::prefix('v1')->name('api.')->group(function () {
         Route::post('/admin/galleries/{id}/photos', [AdminApiController::class, 'galleryAddPhotos'])->name('admin.galleries.photos.store');
         Route::get('/admin/galleries/{id}/photos', [AdminApiController::class, 'galleryPhotos'])->name('admin.galleries.photos.index');
         Route::delete('/admin/photos/{id}', [AdminApiController::class, 'galleryDeletePhoto'])->name('admin.photos.destroy');
+
+        // Featured Video
+        Route::post('/admin/featured-video', [AdminApiController::class, 'featuredVideoStore'])->name('admin.featured-video.store');
+        Route::delete('/admin/featured-video', [AdminApiController::class, 'featuredVideoDestroy'])->name('admin.featured-video.destroy');
 
         // Contacts
         Route::get('/admin/contacts', [AdminApiController::class, 'contacts'])->name('admin.contacts.index');

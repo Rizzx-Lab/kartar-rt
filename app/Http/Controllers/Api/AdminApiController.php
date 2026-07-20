@@ -4,7 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Traits\UploadsToCloudinary;
-use App\Models\{Program, ProgramSession, Announcement, Gallery, GalleryPhoto, Contact, User, OrganizationMember, SiteSetting};
+use App\Models\{Program, ProgramSession, Announcement, Gallery, GalleryPhoto, GalleryVideo, Contact, User, OrganizationMember, SiteSetting};
 use Illuminate\Http\{Request, JsonResponse};
 use Illuminate\Support\Facades\{Storage, File, Cache, Log, Http};
 
@@ -1102,5 +1102,126 @@ class AdminApiController extends Controller
         ];
 
         return response()->json(['success' => true, 'data' => $stats]);
+    }
+
+    // ==========================================
+    // FEATURED VIDEO
+    // ==========================================
+
+    /**
+     * Upload / replace the featured video.
+     *
+     * Validation covers file type, size, and title via the trait's rules.
+     * Duration (> 180s) is checked post-upload using Cloudinary metadata.
+     * Replacing an existing video deletes it from Cloudinary and DB before
+     * creating the new record (handled inside replaceFeaturedVideo).
+     */
+    public function featuredVideoStore(Request $request): JsonResponse
+    {
+        $validated = $request->validate($this->videoUploadRules());
+
+        $galleryVideo = $this->replaceFeaturedVideo(
+            $request->file('video'),
+            $validated['title'],
+            auth()->id()
+        );
+
+        // Duration check: reject if the transcoded video exceeds 3 minutes.
+        // This cannot be validated with standard Laravel rules — it requires
+        // Cloudinary's returned metadata after upload.
+        if ($galleryVideo->duration > 180) {
+            // Roll back: delete the just-uploaded asset from Cloudinary
+            try {
+                $this->deleteVideoFromCloudinary($galleryVideo->public_id);
+            } catch (\Throwable $e) {
+                Log::error('featuredVideoStore: failed to delete oversized video from Cloudinary', [
+                    'public_id' => $galleryVideo->public_id,
+                    'error'     => $e->getMessage(),
+                ]);
+            }
+            // Delete the orphaned DB record
+            $galleryVideo->delete();
+
+            throw \Illuminate\Validation\ValidationException::withMessages([
+                'video' => ['Video terlalu panjang. Durasi maksimum adalah 3 menit (180 detik).'],
+            ]);
+        }
+
+        // Invalidate gallery-related caches (featured video may affect the gallery page layout)
+        $this->invalidateGalleryCaches();
+
+        // Trigger on-demand ISR revalidation on the Next.js frontend
+        $this->triggerFrontendRevalidation(['/galeri'], ['galleries']);
+
+        return response()->json([
+            'success' => true,
+            'data'    => $this->formatFeaturedVideo($galleryVideo),
+            'message' => 'Video featued berhasil diupload.',
+        ]);
+    }
+
+    /**
+     * Delete the currently active featured video (if any).
+     */
+    public function featuredVideoDestroy(): JsonResponse
+    {
+        $video = GalleryVideo::active()->first();
+
+        if (!$video) {
+            return response()->json([
+                'success' => false,
+                'message'  => 'Tidak ada video featured yang aktif.',
+            ], 404);
+        }
+
+        $publicId = $video->public_id;
+
+        try {
+            $this->deleteVideoFromCloudinary($publicId);
+        } catch (\Throwable $e) {
+            Log::error('featuredVideoDestroy: failed to delete Cloudinary asset', [
+                'public_id' => $publicId,
+                'error'     => $e->getMessage(),
+            ]);
+        }
+
+        $video->delete();
+
+        // Invalidate gallery-related caches
+        $this->invalidateGalleryCaches();
+
+        // Trigger on-demand ISR revalidation on the Next.js frontend
+        $this->triggerFrontendRevalidation(['/galeri'], ['galleries']);
+
+        return response()->json([
+            'success' => true,
+            'message'  => 'Video featured berhasil dihapus.',
+        ]);
+    }
+
+    // ==========================================
+    // HELPERS
+    // ==========================================
+
+    /**
+     * Format a GalleryVideo model for API responses.
+     */
+    private function formatFeaturedVideo(GalleryVideo $video): array
+    {
+        return [
+            'id'            => $video->id,
+            'title'         => $video->title,
+            'video_url'     => $video->video_url,
+            'thumbnail_url' => $video->thumbnail_url,
+            'duration'      => $video->duration,
+            'file_size'     => $video->file_size,
+            'is_portrait'   => $video->is_portrait,
+            'expires_at'    => $video->expires_at->toIso8601String(),
+            'created_at'    => $video->created_at->toIso8601String(),
+            'uploader'      => $video->uploader ? [
+                'id'   => $video->uploader->id,
+                'name' => $video->uploader->name,
+            ] : null,
+        ];
     }
 }
