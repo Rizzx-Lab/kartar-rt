@@ -203,6 +203,22 @@ export async function deleteGalleryPhoto(photoId: number) {
 }
 
 // ========================
+// FEATURED VIDEO
+// ========================
+export async function uploadFeaturedVideo(data: FormData) {
+  return adminFetch<any>('/admin/featured-video', {
+    method: 'POST',
+    body: data,
+  });
+}
+
+export async function deleteFeaturedVideo() {
+  return adminFetch<any>('/admin/featured-video', {
+    method: 'DELETE',
+  });
+}
+
+// ========================
 // CONTACTS
 // ========================
 export async function getContacts() {
