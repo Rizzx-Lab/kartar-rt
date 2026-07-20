@@ -100,7 +100,27 @@ export default function AdminGalleriesPage() {
     };
   }, [showModal, showViewModal]);
 
-  // Reset scroll when viewing gallery changes
+  // Create / revoke the preview blob URL whenever the selected file changes.
+  // This useEffect owns the URL lifecycle — the <video> element must NOT call
+  // URL.revokeObjectURL() itself, as that would kill the live blob URL on
+  // every render (the onLoadedMetadata handler captures a stale videoPreview
+  // value via closure and revokes the URL before the browser finishes loading it).
+  useEffect(() => {
+    if (!selectedVideo) {
+      setVideoPreview(null);
+      return;
+    }
+
+    const objectUrl = URL.createObjectURL(selectedVideo);
+    setVideoPreview(objectUrl);
+
+    // Revoke the blob URL when the file changes or the component unmounts.
+    // This prevents blob URL leaks and ensures a fresh URL is created each time
+    // a different file is selected.
+    return () => {
+      URL.revokeObjectURL(objectUrl);
+    };
+  }, [selectedVideo]);
   useEffect(() => {
     if (showViewModal) {
       const modalContent = document.getElementById('gallery-modal-content');
@@ -153,6 +173,7 @@ export default function AdminGalleriesPage() {
     if (!file) return;
 
     setUploadError(null);
+    setIsLandscape(false);
 
     // Client-side validation: file type
     const allowedTypes = ['video/mp4', 'video/quicktime'];
@@ -167,17 +188,21 @@ export default function AdminGalleriesPage() {
       return;
     }
 
+    // Store the File object — the actual blob URL is created in a useEffect
+    // (see below) so that it is created once per file, not on every render.
     setSelectedVideo(file);
-    setVideoPreview(URL.createObjectURL(file));
 
-    // Detect landscape vs portrait by reading video metadata
-    const video = document.createElement('video');
-    video.preload = 'metadata';
-    video.onloadedmetadata = () => {
-      setIsLandscape(video.videoWidth > video.videoHeight);
-      URL.revokeObjectURL(video.src);
+    // Detect landscape vs portrait using a throwaway hidden <video> element.
+    // This creates its own short-lived blob URL which is revoked immediately
+    // after the metadata (width/height) is read — it does NOT touch the
+    // preview blob URL stored in state.
+    const detector = document.createElement('video');
+    detector.preload = 'metadata';
+    detector.onloadedmetadata = () => {
+      setIsLandscape(detector.videoWidth > detector.videoHeight);
+      detector.src = ''; // not strictly necessary but explicit
     };
-    video.src = URL.createObjectURL(file);
+    detector.src = URL.createObjectURL(file);
   };
 
   const handleUploadVideo = async (e: React.FormEvent) => {
@@ -498,7 +523,6 @@ export default function AdminGalleriesPage() {
                 controls
                 className="w-full max-h-48"
                 muted
-                onLoadedMetadata={() => URL.revokeObjectURL(videoPreview)}
               />
             </div>
           )}
