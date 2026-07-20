@@ -1,9 +1,10 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { ImageGallery } from './image-gallery';
 import { ArchiveGallery } from './archive-gallery';
 import { Calendar, Image as ImageIcon } from 'lucide-react';
+import { getFeaturedVideo, FeaturedVideo } from '@/lib/api';
 
 interface GalleryPhoto {
   id: number;
@@ -36,6 +37,15 @@ interface GalleryTabsProps {
 
 export default function GalleryTabs({ recentPhotos, archives, autoScroll = true, scrollSpeed = 30 }: GalleryTabsProps) {
   const [activeSection, setActiveSection] = useState<'recent' | 'archives'>('recent');
+  const [featuredVideo, setFeaturedVideo] = useState<FeaturedVideo | null>(null);
+
+  useEffect(() => {
+    getFeaturedVideo().then((res) => {
+      if (res.success && res.data) {
+        setFeaturedVideo(res.data);
+      }
+    });
+  }, []);
 
   return (
     <>
@@ -101,6 +111,7 @@ export default function GalleryTabs({ recentPhotos, archives, autoScroll = true,
             subtitle="Kumpulan foto terbaru dari berbagai kegiatan"
             autoScroll={autoScroll}
             scrollSpeed={scrollSpeed}
+            featuredVideo={featuredVideo}
           />
         ) : (
           <ArchiveGallery

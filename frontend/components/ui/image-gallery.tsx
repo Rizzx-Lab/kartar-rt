@@ -18,15 +18,26 @@ interface Photo {
   created_at?: string;
 }
 
+export interface FeaturedVideo {
+  id: number;
+  title: string;
+  video_url: string;
+  thumbnail_url: string | null;
+  duration: number;
+  is_portrait: boolean;
+  expires_at: string;
+}
+
 interface ImageGalleryProps {
   photos: Photo[];
   title?: string;
   subtitle?: string;
   autoScroll?: boolean;
   scrollSpeed?: number;
+  featuredVideo?: FeaturedVideo | null;
 }
 
-export function ImageGallery({ photos, title, subtitle, autoScroll = true, scrollSpeed = 30 }: ImageGalleryProps) {
+export function ImageGallery({ photos, title, subtitle, autoScroll = true, scrollSpeed = 30, featuredVideo }: ImageGalleryProps) {
   // Only enable auto scroll if photos >= 3
   const shouldAutoScroll = autoScroll && photos.length >= 3;
 
@@ -76,26 +87,44 @@ export function ImageGallery({ photos, title, subtitle, autoScroll = true, scrol
       )}
 
       {/* Animated Gallery Grid - 3 columns like testimonials */}
-      <AnimatedGalleryGrid photos={photos} scrollSpeed={scrollSpeed} shouldAutoScroll={shouldAutoScroll} />
+      <AnimatedGalleryGrid photos={photos} scrollSpeed={scrollSpeed} shouldAutoScroll={shouldAutoScroll} featuredVideo={featuredVideo} />
     </section>
   );
 }
 
 // Animated Gallery Grid - Similar to testimonials scrolling
-function AnimatedGalleryGrid({ photos, scrollSpeed = 30, shouldAutoScroll = true }: { photos: Photo[]; scrollSpeed?: number; shouldAutoScroll?: boolean }) {
+function AnimatedGalleryGrid({
+  photos,
+  scrollSpeed = 30,
+  shouldAutoScroll = true,
+  featuredVideo,
+}: {
+  photos: Photo[];
+  scrollSpeed?: number;
+  shouldAutoScroll?: boolean;
+  featuredVideo?: FeaturedVideo | null;
+}) {
   const [selectedPhoto, setSelectedPhoto] = useState<Photo | null>(null);
   const [showLightbox, setShowLightbox] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
 
-  // Split photos into 3 columns
-  const column1 = photos.filter((_, i) => i % 3 === 0);
-  const column2 = photos.filter((_, i) => i % 3 === 1);
-  const column3 = photos.filter((_, i) => i % 3 === 2);
+  const hasVideo = !!featuredVideo;
+
+  // When featured video is active, split photos into 2 side columns only (center is video)
+  const sidePhotos = hasVideo ? photos : photos;
+  const column1 = sidePhotos.filter((_, i) => i % (hasVideo ? 2 : 3) === 0);
+  const column2 = sidePhotos.filter((_, i) => i % (hasVideo ? 2 : 3) === (hasVideo ? 1 : 1));
+  const column3 = hasVideo ? [] : sidePhotos.filter((_, i) => i % 3 === 2);
 
   const handlePhotoClick = (photo: Photo) => {
     setSelectedPhoto(photo);
     setShowLightbox(true);
   };
+
+  const videoScrollSpeed = Math.max(20, Math.min(scrollSpeed, 60));
+  const slowClass = 'animate-scroll-gallery-up-slow';
+  const normalClass = 'animate-scroll-gallery-up';
+  const mediumClass = 'animate-scroll-gallery-up-medium';
 
   return (
     <>
@@ -104,21 +133,25 @@ function AnimatedGalleryGrid({ photos, scrollSpeed = 30, shouldAutoScroll = true
         whileInView={{ opacity: 1 }}
         viewport={{ once: true }}
         transition={{ duration: 0.6 }}
-        className="flex justify-center gap-4 px-4 sm:px-6 lg:px-8"
-        style={{ maxHeight: '600px', WebkitMaskImage: 'linear-gradient(to bottom, transparent, black 10%, black 90%, transparent)', maskImage: 'linear-gradient(to bottom, transparent, black 10%, black 90%, transparent)' }}
+        className={`flex justify-center gap-4 px-4 sm:px-6 lg:px-8 ${hasVideo ? '' : ''}`}
+        style={
+          hasVideo
+            ? { maxHeight: '620px', WebkitMaskImage: 'linear-gradient(to bottom, transparent, black 8%, black 92%, transparent)', maskImage: 'linear-gradient(to bottom, transparent, black 8%, black 92%, transparent)' }
+            : { maxHeight: '600px', WebkitMaskImage: 'linear-gradient(to bottom, transparent, black 10%, black 90%, transparent)', maskImage: 'linear-gradient(to bottom, transparent, black 10%, black 90%, transparent)' }
+        }
       >
-        {/* Column 1 */}
+        {/* Left photo column */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="w-full sm:w-72 md:w-80 flex-shrink-0 overflow-hidden"
+          className="w-full sm:w-72 md:w-80 shrink-0 overflow-hidden"
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
         >
           <div
-            className={`flex flex-col gap-4 ${shouldAutoScroll ? 'animate-scroll-gallery-up' : ''}`}
+            className={`flex flex-col gap-4 ${shouldAutoScroll ? normalClass : ''}`}
           >
             {[...column1, ...column1].map((photo, idx) => (
               <AnimatedGalleryItem
@@ -130,48 +163,103 @@ function AnimatedGalleryGrid({ photos, scrollSpeed = 30, shouldAutoScroll = true
           </div>
         </motion.div>
 
-        {/* Column 2 */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.2 }}
-          className="w-full sm:w-72 md:w-80 flex-shrink-0 overflow-hidden"
-        >
-          <div
-            className={`flex flex-col gap-4 ${shouldAutoScroll ? 'animate-scroll-gallery-up-slow' : ''}`}
+        {/* Center: pinned video (when active) or photo column 2 (when no video) */}
+        {hasVideo ? (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="w-full sm:w-72 md:w-80 shrink-0 overflow-hidden rounded-xl bg-black/5"
           >
-            {[...column2, ...column2].map((photo, idx) => (
-              <AnimatedGalleryItem
-                key={`col2-${photo.id}-${idx}`}
-                photo={photo}
-                onClick={() => handlePhotoClick(photo)}
+            {/* Video — pinned, non-scrolling */}
+            <div className="relative w-full" style={{ aspectRatio: '9/16' }}>
+              <video
+                src={featuredVideo.video_url}
+                controls
+                muted
+                playsInline
+                loop
+                preload="metadata"
+                className="absolute inset-0 w-full h-full object-cover rounded-xl"
+                title={featuredVideo.title}
               />
-            ))}
-          </div>
-        </motion.div>
+            </div>
+            {featuredVideo.title && (
+              <div className="mt-2 px-1">
+                <p className="text-sm font-medium text-navy-800 truncate">{featuredVideo.title}</p>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {Math.floor(featuredVideo.duration / 60)}:{String(featuredVideo.duration % 60).padStart(2, '0')} · Featured Video
+                </p>
+              </div>
+            )}
+          </motion.div>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.2 }}
+            className="w-full sm:w-72 md:w-80 shrink-0 overflow-hidden"
+          >
+            <div
+              className={`flex flex-col gap-4 ${shouldAutoScroll ? slowClass : ''}`}
+            >
+              {[...column2, ...column2].map((photo, idx) => (
+                <AnimatedGalleryItem
+                  key={`col2-${photo.id}-${idx}`}
+                  photo={photo}
+                  onClick={() => handlePhotoClick(photo)}
+                />
+              ))}
+            </div>
+          </motion.div>
+        )}
 
-        {/* Column 3 */}
-        <motion.div
-          initial={{ opacity: 0, y: 30 }}
-          whileInView={{ opacity: 1, y: 0 }}
-          viewport={{ once: true }}
-          transition={{ duration: 0.5, delay: 0.3 }}
-          className="w-full sm:w-72 md:w-80 flex-shrink-0 overflow-hidden"
-        >
-          <div
-            className={`flex flex-col gap-4 ${shouldAutoScroll ? 'animate-scroll-gallery-up-medium' : ''}`}
+        {/* Right photo column — hidden on mobile when video is active */}
+        {hasVideo ? (
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="hidden lg:block w-full sm:w-72 md:w-80 shrink-0 overflow-hidden"
           >
-            {[...column3, ...column3].map((photo, idx) => (
-              <AnimatedGalleryItem
-                key={`col3-${photo.id}-${idx}`}
-                photo={photo}
-                onClick={() => handlePhotoClick(photo)}
-                medium
-              />
-            ))}
-          </div>
-        </motion.div>
+            <div
+              className={`flex flex-col gap-4 ${shouldAutoScroll ? mediumClass : ''}`}
+            >
+              {[...column2, ...column2].map((photo, idx) => (
+                <AnimatedGalleryItem
+                  key={`col3-${photo.id}-${idx}`}
+                  photo={photo}
+                  onClick={() => handlePhotoClick(photo)}
+                  medium
+                />
+              ))}
+            </div>
+          </motion.div>
+        ) : (
+          <motion.div
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5, delay: 0.3 }}
+            className="w-full sm:w-72 md:w-80 shrink-0 overflow-hidden"
+          >
+            <div
+              className={`flex flex-col gap-4 ${shouldAutoScroll ? mediumClass : ''}`}
+            >
+              {[...column3, ...column3].map((photo, idx) => (
+                <AnimatedGalleryItem
+                  key={`col3-${photo.id}-${idx}`}
+                  photo={photo}
+                  onClick={() => handlePhotoClick(photo)}
+                  medium
+                />
+              ))}
+            </div>
+          </motion.div>
+        )}
       </motion.div>
 
       {/* Lightbox Modal */}

@@ -139,6 +139,23 @@ export async function submitContact(data: {
 }
 
 // ========================
+// FEATURED VIDEO
+// ========================
+export async function getFeaturedVideo() {
+  return apiFetch<FeaturedVideo | null>('/featured-video');
+}
+
+export interface FeaturedVideo {
+  id: number;
+  title: string;
+  video_url: string;
+  thumbnail_url: string | null;
+  duration: number;
+  is_portrait: boolean;
+  expires_at: string;
+}
+
+// ========================
 // TYPES
 // ========================
 export interface Program {
