@@ -23,6 +23,13 @@ return Application::configure(basePath: dirname(__DIR__))
             ->everyMinute()
             ->withoutOverlapping()
             ->runInBackground();
+
+        // Check every minute for featured videos whose 7-day window has expired.
+        // Deletes from both Cloudinary and DB; no archiving.
+        $schedule->command('gallery-videos:purge-expired')
+            ->everyMinute()
+            ->withoutOverlapping()
+            ->runInBackground();
     })
     ->withMiddleware(function (Middleware $middleware) {
         $middleware->alias([
