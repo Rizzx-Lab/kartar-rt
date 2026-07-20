@@ -259,10 +259,13 @@ class AdminApiController extends Controller
                 ? $rawDescription
                 : "Sesi {$session->title} telah dijadwalkan pada {$sessionDate} di {$sessionLocation}.";
 
-            // Excerpt: use title as-is. DO NOT auto-append the date here — if the user typed
-            // the date into the title (e.g. "Lomba 17 Agustus - Sabtu 25 Juli 2026"), appending
-            // a formatted date would duplicate it. The published_at / held_at already convey the date.
-            $announcementExcerpt = $session->title;
+            // Excerpt: build a short preview from the actual description (content), NOT from the title.
+            // This gives list views a meaningful content preview without duplicating the title.
+            // If description is empty, leave excerpt null — formatAnnouncement() will auto-generate
+            // from content (which falls back to the location/time fallback string above).
+            $announcementExcerpt = $rawDescription
+                ? \Str::limit(strip_tags($rawDescription), 150)
+                : null;
 
             $announcement = Announcement::create([
                 'user_id' => auth()->id(),
@@ -399,6 +402,13 @@ class AdminApiController extends Controller
                 $data['image_url'] = $result['url'];
                 $data['image_public_id'] = $result['public_id'];
                 Log::info('announcementStore: image uploaded', ['url' => $data['image_url']]);
+            }
+
+            // Auto-generate excerpt from content if the admin didn't provide one.
+            // formatAnnouncement() also does this fallback, but setting it here keeps the DB
+            // consistent so it survives any future caching layers.
+            if (empty($data['excerpt'])) {
+                $data['excerpt'] = \Str::limit(strip_tags($data['content']), 150);
             }
 
             // Set user_id from authenticated admin
