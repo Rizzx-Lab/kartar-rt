@@ -23,7 +23,6 @@ interface FormData {
   content: string;
   excerpt: string;
   is_pinned: boolean;
-  is_published: boolean;
   published_at: string;
 }
 
@@ -37,7 +36,6 @@ export default function AdminAnnouncementsPage() {
     content: '',
     excerpt: '',
     is_pinned: false,
-    is_published: true,
     published_at: new Date().toISOString().split('T')[0],
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -70,7 +68,6 @@ export default function AdminAnnouncementsPage() {
       content: '',
       excerpt: '',
       is_pinned: false,
-      is_published: true,
       published_at: new Date().toISOString().split('T')[0],
     });
     setSelectedImage(null);
@@ -86,7 +83,6 @@ export default function AdminAnnouncementsPage() {
       content: announcement.content || '',
       excerpt: announcement.excerpt || '',
       is_pinned: announcement.is_pinned,
-      is_published: announcement.is_published,
       published_at: announcement.published_at?.split('T')[0] || new Date().toISOString().split('T')[0],
     });
     setSelectedImage(null);
@@ -119,7 +115,6 @@ export default function AdminAnnouncementsPage() {
     form.append('content', formData.content);
     form.append('excerpt', formData.excerpt);
     form.append('is_pinned', String(formData.is_pinned));
-    form.append('is_published', String(formData.is_published));
     form.append('published_at', formData.published_at);
 
     if (selectedImage) {
@@ -428,24 +423,20 @@ export default function AdminAnnouncementsPage() {
               </div>
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Tanggal Terbit <span className="text-red-500">*</span>
+                  </label>
                   <input
                     type="date"
                     value={formData.published_at}
+                    min={new Date().toISOString().split('T')[0]}
                     onChange={(e) => setFormData({ ...formData, published_at: e.target.value })}
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-500 focus:border-gold-500"
                   />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-                  <select
-                    value={String(formData.is_published)}
-                    onChange={(e) => setFormData({ ...formData, is_published: e.target.value === 'true' })}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-500 focus:border-gold-500"
-                  >
-                    <option value="true">Published</option>
-                    <option value="false">Draft</option>
-                  </select>
+                  <p className="mt-1 text-xs text-gray-500 leading-relaxed">
+                    Hari ini → terbit langsung.<br />
+                    Masa depan → otomatis Draft.
+                  </p>
                 </div>
                 <div className="flex items-end pb-1">
                   <label className="flex items-center gap-2 cursor-pointer">

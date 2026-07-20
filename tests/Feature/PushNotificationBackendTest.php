@@ -156,6 +156,7 @@ class PushNotificationBackendTest extends TestCase
         $response = $this->actingAs($admin, 'sanctum')->putJson("/api/v1/admin/announcements/{$announcement->id}", [
             'title' => 'Updated Title',
             'content' => 'Updated content',
+            'published_at' => now()->toDateString(), // required field after auto-scheduling implementation
         ]);
 
         $response->assertStatus(200);

@@ -377,7 +377,7 @@ class AdminApiController extends Controller
                 'title' => 'required|string|max:150',
                 'content' => 'required|string',
                 'excerpt' => 'nullable|string|max:250',
-                'published_at' => 'nullable|date',
+                'published_at' => 'required|date|after_or_equal:today',
                 'image' => 'nullable|image|max:2048',
             ]);
 
@@ -386,8 +386,30 @@ class AdminApiController extends Controller
             // Handle boolean fields separately (FormData sends strings "true"/"false")
             $data['slug'] = \Str::slug($request->title) . '-' . time();
             $data['is_pinned'] = filter_var($request->input('is_pinned'), FILTER_VALIDATE_BOOLEAN) ?: false;
-            $data['is_published'] = filter_var($request->input('is_published'), FILTER_VALIDATE_BOOLEAN) ?: true;
-            $data['published_at'] = $request->published_at ?? now();
+            // is_published is determined automatically based on the date — see auto-scheduling logic below
+            $data['published_at'] = $data['published_at']; // already validated as date
+
+            // ─────────────────────────────────────────────────────────
+            // AUTO-SCHEDULING LOGIC: determine status from Tanggal Terbit
+            // ─────────────────────────────────────────────────────────
+            $selectedDate = \Carbon\Carbon::parse($data['published_at'])->startOfDay();
+            $today = \Carbon\Carbon::today();
+
+            if ($selectedDate->isFuture()) {
+                // Future date → always draft
+                $data['is_published'] = false;
+                Log::info('announcementStore: future date → Draft', [
+                    'published_at' => $data['published_at'],
+                ]);
+            } else {
+                // Today → immediately published
+                $data['is_published'] = true;
+                $data['published_at'] = now(); // use server's current timestamp
+                Log::info('announcementStore: today → Published immediately', [
+                    'published_at' => $data['published_at'],
+                ]);
+            }
+            // Past dates are rejected by the validation rule above.
 
             Log::info('announcementStore: processed fields', [
                 'is_pinned' => $data['is_pinned'],
@@ -452,15 +474,35 @@ class AdminApiController extends Controller
                 'title' => 'required|string|max:150',
                 'content' => 'required|string',
                 'excerpt' => 'nullable|string|max:250',
-                'published_at' => 'nullable|date',
+                'published_at' => 'required|date|after_or_equal:today',
                 'image' => 'nullable|image|max:2048',
                 'remove_image' => 'nullable|boolean',
             ]);
 
             // Handle boolean fields separately (FormData sends strings "true"/"false")
             $data['is_pinned'] = filter_var($request->input('is_pinned'), FILTER_VALIDATE_BOOLEAN);
-            $data['is_published'] = filter_var($request->input('is_published'), FILTER_VALIDATE_BOOLEAN);
             $removeImage = filter_var($request->input('remove_image'), FILTER_VALIDATE_BOOLEAN);
+
+            // ─────────────────────────────────────────────────────────
+            // AUTO-SCHEDULING LOGIC: determine status from Tanggal Terbit
+            // Same rules as create — admin cannot override via the dropdown.
+            // ─────────────────────────────────────────────────────────
+            $selectedDate = \Carbon\Carbon::parse($data['published_at'])->startOfDay();
+            $today = \Carbon\Carbon::today();
+
+            if ($selectedDate->isFuture()) {
+                $data['is_published'] = false;
+                Log::info('announcementUpdate: future date → Draft', [
+                    'published_at' => $data['published_at'],
+                ]);
+            } else {
+                $data['is_published'] = true;
+                $data['published_at'] = now(); // use server's current timestamp
+                Log::info('announcementUpdate: today → Published immediately', [
+                    'published_at' => $data['published_at'],
+                ]);
+            }
+            // Past dates are rejected by the validation rule above.
 
             // Handle new image upload
             if ($request->hasFile('image')) {
