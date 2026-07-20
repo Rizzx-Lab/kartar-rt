@@ -378,6 +378,7 @@ class AdminApiController extends Controller
                 'content' => 'required|string',
                 'excerpt' => 'nullable|string|max:250',
                 'published_at' => 'required|date|after_or_equal:today',
+                'expires_at' => 'nullable|date|after:published_at|after_or_equal:today',
                 'image' => 'nullable|image|max:2048',
             ]);
 
@@ -410,6 +411,11 @@ class AdminApiController extends Controller
                 ]);
             }
             // Past dates are rejected by the validation rule above.
+
+            // Handle expires_at: null if empty (no expiry), otherwise keep the validated date.
+            // Empty string from FormData is coerced to null so the DB sees NULL not ''.
+            $expiresAt = $request->input('expires_at');
+            $data['expires_at'] = ($expiresAt !== null && $expiresAt !== '') ? $expiresAt : null;
 
             Log::info('announcementStore: processed fields', [
                 'is_pinned' => $data['is_pinned'],
@@ -475,6 +481,7 @@ class AdminApiController extends Controller
                 'content' => 'required|string',
                 'excerpt' => 'nullable|string|max:250',
                 'published_at' => 'required|date|after_or_equal:today',
+                'expires_at' => 'nullable|date|after:published_at|after_or_equal:today',
                 'image' => 'nullable|image|max:2048',
                 'remove_image' => 'nullable|boolean',
             ]);
@@ -503,6 +510,10 @@ class AdminApiController extends Controller
                 ]);
             }
             // Past dates are rejected by the validation rule above.
+
+            // Handle expires_at: null if empty (no expiry), otherwise keep the validated date.
+            $expiresAt = $request->input('expires_at');
+            $data['expires_at'] = ($expiresAt !== null && $expiresAt !== '') ? $expiresAt : null;
 
             // Handle new image upload
             if ($request->hasFile('image')) {

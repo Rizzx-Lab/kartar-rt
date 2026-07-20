@@ -13,6 +13,7 @@ interface Announcement {
   is_pinned: boolean;
   is_published: boolean;
   published_at: string;
+  expires_at: string | null;
   created_at: string;
   image_url?: string | null;
   image_public_id?: string | null;
@@ -24,6 +25,7 @@ interface FormData {
   excerpt: string;
   is_pinned: boolean;
   published_at: string;
+  expires_at: string;
 }
 
 export default function AdminAnnouncementsPage() {
@@ -37,6 +39,7 @@ export default function AdminAnnouncementsPage() {
     excerpt: '',
     is_pinned: false,
     published_at: new Date().toISOString().split('T')[0],
+    expires_at: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -69,6 +72,7 @@ export default function AdminAnnouncementsPage() {
       excerpt: '',
       is_pinned: false,
       published_at: new Date().toISOString().split('T')[0],
+      expires_at: '',
     });
     setSelectedImage(null);
     setImagePreview(null);
@@ -84,6 +88,7 @@ export default function AdminAnnouncementsPage() {
       excerpt: announcement.excerpt || '',
       is_pinned: announcement.is_pinned,
       published_at: announcement.published_at?.split('T')[0] || new Date().toISOString().split('T')[0],
+      expires_at: announcement.expires_at?.split('T')[0] || '',
     });
     setSelectedImage(null);
     setImagePreview(null);
@@ -116,6 +121,9 @@ export default function AdminAnnouncementsPage() {
     form.append('excerpt', formData.excerpt);
     form.append('is_pinned', String(formData.is_pinned));
     form.append('published_at', formData.published_at);
+    if (formData.expires_at) {
+      form.append('expires_at', formData.expires_at);
+    }
 
     if (selectedImage) {
       form.append('image', selectedImage);
@@ -449,6 +457,22 @@ export default function AdminAnnouncementsPage() {
                     <span className="text-sm text-gray-700">Sematkan</span>
                   </label>
                 </div>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Tanggal Berakhir <span className="text-gray-400">(opsional)</span>
+                </label>
+                <input
+                  type="date"
+                  value={formData.expires_at}
+                  min={formData.published_at}
+                  onChange={(e) => setFormData({ ...formData, expires_at: e.target.value })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-500 focus:border-gold-500"
+                />
+                <p className="mt-1 text-xs text-gray-500 leading-relaxed">
+                  Kosongkan jika tidak ada batas waktu.<br />
+                  Setelah tanggal ini, pengumuman otomatis ditarik.
+                </p>
               </div>
               <div className="flex gap-3 pt-4">
                 <button
