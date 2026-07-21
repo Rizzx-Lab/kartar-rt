@@ -4,6 +4,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ZoomIn } from 'lucide-react';
 import { Lightbox } from './lightbox';
+import type { FeaturedVideo } from '@/lib/api';
 
 interface Photo {
   id: number;
@@ -16,16 +17,6 @@ interface Photo {
     title: string;
   };
   created_at?: string;
-}
-
-export interface FeaturedVideo {
-  id: number;
-  title: string;
-  video_url: string;
-  thumbnail_url: string | null;
-  duration: number;
-  is_portrait: boolean;
-  expires_at: string;
 }
 
 interface ImageGalleryProps {
@@ -108,7 +99,10 @@ function AnimatedGalleryGrid({
   const [showLightbox, setShowLightbox] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
 
-  const hasVideo = !!featuredVideo;
+  // Only show the pinned video column when the video is fully processed
+  // (i.e., video_url is available). A processing video has no URL yet and should
+  // fall through to the normal 3-column photo layout.
+  const hasVideo = !!featuredVideo?.video_url;
 
   // When featured video is active, split photos into 2 side columns only (center is video)
   const sidePhotos = hasVideo ? photos : photos;

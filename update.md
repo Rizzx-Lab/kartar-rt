@@ -152,6 +152,7 @@ A standalone "featured video" feature for the Gallery page. Admin can upload one
     - `frontend/lib/api.ts` — `FeaturedVideo` type: added `status`, `video_url` now nullable.
     - `frontend/app/admin/galleries/page.tsx` — `processingVideo` state; polling `useEffect` every 10 s; amber "● Processing" badge; spinner + progress bar during processing; "Batalkan" button; form disabled while processing.
   - **Deploy note:** Run `php artisan migrate` to add the new columns. Ensure the cron `* * * * * php /path/to/artisan queue:work --once --timeout=30` is active — without it, videos will stay in `processing` indefinitely.
+  - **Follow-up (2026-07-21):** Vercel build failed with `Type 'string | null' is not assignable to type 'string'` in `image-gallery.tsx` — that component had its own duplicate `FeaturedVideo` interface (from Task 6) with `video_url: string`. Fixed by removing the duplicate and importing `FeaturedVideo` from `frontend/lib/api.ts` instead. JSX guard updated: `hasVideo = !!featuredVideo?.video_url` so a processing video (no URL yet) falls through to the normal 3-column photo layout rather than rendering a broken `<video>` tag.
 
 ---
 
