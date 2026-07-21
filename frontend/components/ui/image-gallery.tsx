@@ -169,7 +169,7 @@ function AnimatedGalleryGrid({
             {/* Video — pinned, non-scrolling */}
             <div className="relative w-full" style={{ aspectRatio: '9/16' }}>
               <video
-                src={featuredVideo.video_url}
+                src={featuredVideo.video_url ?? undefined}
                 controls
                 muted
                 playsInline
