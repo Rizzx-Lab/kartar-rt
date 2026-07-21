@@ -154,6 +154,16 @@ A standalone "featured video" feature for the Gallery page. Admin can upload one
   - **Deploy note:** Run `php artisan migrate` to add the new columns. Ensure the cron `* * * * * php /path/to/artisan queue:work --once --timeout=30` is active — without it, videos will stay in `processing` indefinitely.
   - **Follow-up (2026-07-21):** Vercel build failed with `Type 'string | null' is not assignable to type 'string'` in `image-gallery.tsx` — that component had its own duplicate `FeaturedVideo` interface (from Task 6) with `video_url: string`. Fixed by removing the duplicate and importing `FeaturedVideo` from `frontend/lib/api.ts` instead. JSX guard updated: `hasVideo = !!featuredVideo?.video_url` so a processing video (no URL yet) falls through to the normal 3-column photo layout rather than rendering a broken `<video>` tag.
 
+- **2026-07-21 — Bugfix: video_url NOT NULL constraint breaks async upload flow**
+  - Symptom: `SQLSTATE[HY000]: General error: 1364 Field 'video_url' doesn't have a default value` — thrown by `replaceFeaturedVideoAsync()` when creating the initial `GalleryVideo` record with `status='processing'`. At this point the final `video_url` is not yet known (it is populated later by `ProcessFeaturedVideoUpload` once Cloudinary finishes transcoding).
+  - Root cause: **Migration gap.** The original migration (`2026_07_20_000001_create_gallery_videos_table.php`) defined `video_url` as a required `string` column (`NOT NULL`, no default) — correct under the old synchronous design where `video_url` was always available at insert time. The async migration (`2026_07_21_000001_add_processing_status_to_gallery_videos_table.php`) added `pending_video_url` and `status` but did not make `video_url` nullable to match the new async flow.
+  - Files changed:
+    - `database/migrations/2026_07_21_000002_make_gallery_videos_video_url_nullable.php` — **NEW.** Alters `gallery_videos.video_url` to `->nullable()->change()`. Laravel 12 natively supports the `change()` method without requiring `doctrine/dbal`.
+    - `app/Models/GalleryVideo.php` — no changes needed. `$fillable` includes `video_url`, `$casts` has no non-null assertion, no validation rules assume non-null.
+    - API controllers already handle the nullable case safely: both `PublicApiController::featuredVideo()` and `AdminApiController::formatFeaturedVideo()` return `video_url: null` when `status !== 'active'`, so no changes were needed there either.
+  - **Deploy note:** Run `php artisan migrate` on the server to apply the new migration. Existing `active` records have a non-null `video_url` and are unaffected. Processing/failed records (if any existed before the fix) would now insert correctly.
+
+
 ---
 
 ## Feature Complete ✅
