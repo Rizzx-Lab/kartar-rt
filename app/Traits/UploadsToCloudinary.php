@@ -20,7 +20,7 @@ trait UploadsToCloudinary
      */
     protected function uploadToCloudinaryWithPublicId($file, string $folder): array
     {
-        $cloudinary = new Cloudinary();
+        $cloudinary = new Cloudinary(config('services.cloudinary.url'));
 
         $result = $cloudinary->uploadApi()->upload($file->getRealPath(), [
             'folder' => $folder,
@@ -60,7 +60,7 @@ trait UploadsToCloudinary
             $publicIdOrUrl = preg_replace('/\.[^.]+$/', '', $publicIdOrUrl); // Remove file extension
         }
 
-        $cloudinary = new Cloudinary();
+        $cloudinary = new Cloudinary(config('services.cloudinary.url'));
         $cloudinary->uploadApi()->destroy($publicIdOrUrl);
     }
 
@@ -74,7 +74,7 @@ trait UploadsToCloudinary
      */
     protected function deleteVideoFromCloudinary(string $publicId): void
     {
-        $cloudinary = new Cloudinary();
+        $cloudinary = new Cloudinary(config('services.cloudinary.url'));
         $cloudinary->uploadApi()->destroy($publicId, [
             'type' => AssetType::VIDEO,
         ]);
@@ -129,7 +129,7 @@ trait UploadsToCloudinary
      */
     protected function uploadVideoToCloudinary(UploadedFile $file, string $folder): array
     {
-        $cloudinary = new Cloudinary();
+        $cloudinary = new Cloudinary(config('services.cloudinary.url'));
 
         // Eager transformation: transcode to H.264/MP4, cap at 720p (shortest side),
         // auto quality. Single transformation only — no multiple variants.
