@@ -87,15 +87,6 @@ class ProcessFeaturedVideoUpload implements ShouldQueue
             return;
         }
 
-        // TEMPORARY DEBUG — hapus setelah selesai troubleshooting
-        Log::debug('ProcessFeaturedVideoUpload: raw Cloudinary response', [
-            'gallery_video_id' => $this->galleryVideoId,
-            'public_id'       => $this->publicId,
-            'eager_raw'       => $resource['eager'] ?? 'NOT_PRESENT',
-            'derived_raw'    => $resource['derived'] ?? 'NOT_PRESENT',
-            'resource_keys'   => array_keys((array) $resource),
-        ]);
-
         // Cloudinary Admin API returns eager transformations in the 'derived' array
         // (NOT the 'eager' key — that key exists only in the upload API response).
         // Each derived entry has 'transformation' and 'secure_url'.
