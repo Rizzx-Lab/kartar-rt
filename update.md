@@ -163,6 +163,27 @@ A standalone "featured video" feature for the Gallery page. Admin can upload one
     - API controllers already handle the nullable case safely: both `PublicApiController::featuredVideo()` and `AdminApiController::formatFeaturedVideo()` return `video_url: null` when `status !== 'active'`, so no changes were needed there either.
   - **Deploy note:** Run `php artisan migrate` on the server to apply the new migration. Existing `active` records have a non-null `video_url` and are unaffected. Processing/failed records (if any existed before the fix) would now insert correctly.
 
+- **2026-07-21 — Bugfix (continued): duration and file_size NOT NULL constraint also breaks async upload flow**
+  - Symptom: `SQLSTATE[HY000]: General error: 1364 Field 'duration' doesn't have a default value` — same class of bug as the `video_url` fix. After `video_url` was made nullable, the same `replaceFeaturedVideoAsync()` INSERT still omitted `duration` and `file_size`, both of which were NOT NULL / no-default in the original migration.
+  - Root cause: Same migration gap. The original migration defined `duration` and `file_size` as required because under the synchronous design they were always known immediately from the Cloudinary upload response. The async flow inserts them later via `ProcessFeaturedVideoUpload` (after transcoding), so the initial INSERT must tolerate null.
+  - Schema audit: compared every NOT NULL / no-default column in the original migration against the 7-column `GalleryVideo::create()` in `replaceFeaturedVideoAsync()`:
+    | Column | In INSERT? | Original nullable? | Status |
+    |--------|-----------|-------------------|--------|
+    | `uploaded_by` | ✅ provided | NOT NULL FK | OK |
+    | `title` | ✅ provided | NOT NULL | OK |
+    | `public_id` | ✅ provided | NOT NULL | OK |
+    | `is_portrait` | ✅ provided | NOT NULL bool | OK |
+    | `expires_at` | ✅ provided | NOT NULL | OK |
+    | `status` | ✅ provided | default 'processing' | OK |
+    | `pending_video_url` | ✅ provided | nullable | OK |
+    | `thumbnail_url` | ❌ omitted | **nullable** | OK (already nullable) |
+    | `video_url` | ❌ omitted | **nullable** | OK (fixed in 000002) |
+    | `duration` | ❌ omitted | NOT NULL, no default | **→ fixed here** |
+    | `file_size` | ❌ omitted | NOT NULL, no default | **→ fixed here** |
+  - Files changed:
+    - `database/migrations/2026_07_21_000003_make_gallery_videos_duration_file_size_nullable.php` — **NEW.** Alters `gallery_videos.duration` and `gallery_videos.file_size` to `->nullable()->change()`.
+  - **Deploy note:** Run `php artisan migrate` on the server to apply. This is the third migration in the async-video series; all three must be applied (`2026_07_21_000001`, `000002`, `000003`).
+
 
 ---
 
