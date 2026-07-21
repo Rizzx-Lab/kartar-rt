@@ -76,7 +76,7 @@ trait UploadsToCloudinary
     {
         $cloudinary = new Cloudinary(config('services.cloudinary.url'));
         $cloudinary->uploadApi()->destroy($publicId, [
-            'type' => AssetType::VIDEO,
+            'resource_type' => 'video',
         ]);
     }
 
@@ -115,6 +115,12 @@ trait UploadsToCloudinary
      * synchronous eager transforms for files over ~100 MB with
      * "Video is too large to process synchronously").
      *
+     * NOTE: the `eager` param MUST be an array of qualifiers (not a raw URL-syntax
+     * string), otherwise the SDK's AssetTransformation serialiser doubles the format
+     * qualifier (producing e.g. "w_720,h_720,c_limit,q_auto,f_mp4/f_mp4") and
+     * Cloudinary silently ignores the malformed eager string — no transformation
+     * is ever queued.
+     *
      * @param UploadedFile $file   The uploaded video file (mp4 or mov).
      * @param string       $folder The Cloudinary folder to upload into.
      * @return array{pending_video_url: string, public_id: string, is_portrait: bool}
@@ -123,15 +129,40 @@ trait UploadsToCloudinary
     {
         $cloudinary = new Cloudinary(config('services.cloudinary.url'));
 
-        // Eager transformation: transcode to H.264/MP4, cap at 720p (shortest side),
-        // auto quality. eager_async=true means Cloudinary queues the transformation
-        // and the upload API call returns immediately with the raw video URL.
+        // Eager transformation: transcode to H.264/MP4, cap at 720p on BOTH
+        // dimensions (c_limit constrains width AND height while preserving aspect
+        // ratio). For a portrait source (e.g. 720x1280), the height bound of 720
+        // is already satisfied so only width gets capped — portrait is preserved.
+        // Passed as an array of qualifiers — NOT a raw string — so the SDK's
+        // AssetTransformation serialiser produces "w_720,h_720,c_limit,q_auto/f_mp4"
+        // instead of the malformed double-format "w_720,h_720,c_limit,q_auto,f_mp4/f_mp4"
+        // that Cloudinary silently ignores.
+        $eagerTransformation = [
+            'width'   => 720,
+            'height'  => 720,
+            'crop'    => 'limit',
+            'quality' => 'auto',
+            'format'  => 'mp4',
+        ];
+
         $result = $cloudinary->uploadApi()->upload($file->getRealPath(), [
-            'folder'          => $folder,
-            'resource_type'    => AssetType::VIDEO,
-            'eager'           => 'w_720,h_720,c_limit,q_auto,f_mp4',
+            'folder'        => $folder,
+            'resource_type' => AssetType::VIDEO,
+            'eager'        => $eagerTransformation,
+            'eager_async'  => true,
+        ]);
+
+        // Log the full raw response so we can verify whether Cloudinary included
+        // an 'eager' key at all (it should, with status="pending" when async).
+        Log::debug('uploadVideoToCloudinaryAsync: full Cloudinary response', [
+            'public_id'       => $result['public_id'] ?? 'N/A',
+            'secure_url'      => $result['secure_url'] ?? 'N/A',
+            'eager'           => $result['eager'] ?? 'NOT_PRESENT',
             'eager_async'     => true,
-            'raw_convert'     => null,
+            'width'           => $result['width'] ?? 'N/A',
+            'height'          => $result['height'] ?? 'N/A',
+            'format'          => $result['format'] ?? 'N/A',
+            'response_keys'   => array_keys((array) $result),
         ]);
 
         $width     = (int) ($result['width'] ?? 0);

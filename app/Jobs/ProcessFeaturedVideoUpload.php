@@ -165,7 +165,7 @@ class ProcessFeaturedVideoUpload implements ShouldQueue
         // Attempt to clean up the Cloudinary asset so it doesn't orphan.
         try {
             $cloudinary = new Cloudinary(config('services.cloudinary.url'));
-            $cloudinary->uploadApi()->destroy($this->publicId, ['type' => 'video']);
+            $cloudinary->uploadApi()->destroy($this->publicId, ['resource_type' => 'video']);
         } catch (\Throwable $e) {
             Log::warning('ProcessFeaturedVideoUpload: failed to delete Cloudinary asset on record failure', [
                 'public_id' => $this->publicId,
