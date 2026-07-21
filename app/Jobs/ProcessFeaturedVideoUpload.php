@@ -92,22 +92,18 @@ class ProcessFeaturedVideoUpload implements ShouldQueue
             'gallery_video_id' => $this->galleryVideoId,
             'public_id'       => $this->publicId,
             'eager_raw'       => $resource['eager'] ?? 'NOT_PRESENT',
+            'derived_raw'    => $resource['derived'] ?? 'NOT_PRESENT',
             'resource_keys'   => array_keys((array) $resource),
         ]);
 
-        $eager = $resource['eager'] ?? [];
+        // Cloudinary Admin API returns eager transformations in the 'derived' array
+        // (NOT the 'eager' key — that key exists only in the upload API response).
+        // Each derived entry has 'transformation' and 'secure_url'.
+        $derived = $resource['derived'] ?? [];
 
-        // The Cloudinary Admin API only populates the eager array with COMPLETED
-        // variants. For eager_async=true uploads, a pending transformation is NOT
-        // present in the eager array at all — it only appears once Cloudinary
-        // has finished generating the transformed file. There is no per-variant
-        // status field; the presence of the entry (with a non-null secure_url)
-        // is the completion signal.
-        //
-        // Find the variant matching our w_720 transformation by checking for the
-        // w_720 qualifier in the transformation string.
+        // Find the variant matching our w_720 transformation.
         $transformed = null;
-        foreach ($eager as $variant) {
+        foreach ($derived as $variant) {
             if (isset($variant['transformation']) && str_contains($variant['transformation'], 'w_720')) {
                 $transformed = $variant;
                 break;
