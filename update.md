@@ -184,50 +184,19 @@ A standalone "featured video" feature for the Gallery page. Admin can upload one
     - `database/migrations/2026_07_21_000003_make_gallery_videos_duration_file_size_nullable.php` — **NEW.** Alters `gallery_videos.duration` and `gallery_videos.file_size` to `->nullable()->change()`.
   - **Deploy note:** Run `php artisan migrate` on the server to apply. This is the third migration in the async-video series; all three must be applied (`2026_07_21_000001`, `000002`, `000003`).
 
-- **2026-07-21 — Bugfix: eager transformation not queued (double-format SDK serialization) + destroy() wrong param**
+- **2026-07-21 — Bugfix: eager transformation not queued (double-format SDK serialization) + destroy() wrong param + job checks wrong array**
   - Symptom: Videos uploaded via `uploadVideoToCloudinaryAsync()` were stored on Cloudinary in their **original format** (e.g. `.mov`) with zero Derived/Transformations shown in the Cloudinary dashboard. The `ProcessFeaturedVideoUpload` job would loop 10 times waiting for the `w_720` eager variant, never find it, then exhaust retries and mark the record `failed`.
   - Root cause #1 — SDK double-format serialization: The `eager` param was passed as a raw string (`'w_720,h_480,c_limit,q_auto,f_mp4'`). The Cloudinary PHP SDK v3 serialises raw eager strings by appending them to the base transformation, producing `w_720,h_480,c_limit,q_auto,f_mp4/f_mp4` — the `f_mp4` format qualifier appears twice. Cloudinary silently rejects this malformed transformation string, so no eager transformation is ever queued at all.
-  - Fix #1 — `app/Traits/UploadsToCloudinary.php` (`uploadVideoToCloudinaryAsync()`, lines 137-146): Changed `$eagerTransformation` from a raw string to a qualifiers array (`'width' => 720, 'height' => 720, 'crop' => 'limit', 'quality' => 'auto', 'format' => 'mp4'`). The SDK's `AssetTransformation` serialiser handles the array form correctly, producing a single clean `w_720,h_720,c_limit,q_auto/f_mp4`. Height kept at 720 (not reduced to 480) — `c_limit` constrains both dimensions while preserving aspect ratio; for a portrait source (e.g. 720×1280), the height bound of 720 is already satisfied so only width gets capped, preserving the portrait orientation that is the primary format.
+  - Fix #1 — `app/Traits/UploadsToCloudinary.php` (`uploadVideoToCloudinaryAsync()`): Changed `$eagerTransformation` from a raw string to a qualifiers array (`'width' => 720, 'height' => 720, 'crop' => 'limit', 'quality' => 'auto', 'format' => 'mp4'`). The SDK's `AssetTransformation` serialiser handles the array form correctly, producing a single clean `w_720,h_720,c_limit,q_auto/f_mp4`. Height kept at 720 (not reduced to 480) — `c_limit` constrains both dimensions while preserving aspect ratio; for a portrait source (e.g. 720×1280), the height bound of 720 is already satisfied so only width gets capped, preserving the portrait orientation.
   - Root cause #2 — `destroy()` wrong parameter name: `deleteVideoFromCloudinary()` called `destroy($publicId, ['type' => AssetType::VIDEO])`. The Cloudinary `destroy()` API's `type` parameter refers to delivery type (`upload`/`private`/`authenticated`), NOT resource type. Passing `'type' => 'video'` throws `Invalid value video for parameter type`. The correct parameter is `resource_type: 'video'`.
-  - Fix #2 — `app/Traits/UploadsToCloudinary.php` (`deleteVideoFromCloudinary()`, line 78-80): Changed `['type' => AssetType::VIDEO]` → `['resource_type' => 'video']`. Note: `ProcessFeaturedVideoUpload::failRecord()` already had this correct — only the trait method was wrong. This bug is the root cause of the 8 orphaned ~43 MB `.mov` files that accumulated in Cloudinary storage from failed upload attempts before this fix.
-  - Debug logging retained: the full Cloudinary upload response (including the `eager` key and `response_keys`) is logged at `Log::debug` level after every async upload, so the fix can be verified from `storage/logs/laravel.log` without waiting for the job to exhaust retries.
+  - Fix #2 — `app/Traits/UploadsToCloudinary.php` (`deleteVideoFromCloudinary()`): Changed `['type' => AssetType::VIDEO]` → `['resource_type' => 'video']`. This bug is the root cause of the 8 orphaned ~43 MB `.mov` files that accumulated in Cloudinary storage from failed upload attempts before this fix.
+  - Root cause #3 — Job checks wrong array: `ProcessFeaturedVideoUpload` checked `$resource['eager']` for the transformation result. But Cloudinary's Admin API `asset()` returns async eager transformations in the **`derived`** array — not the `eager` key. The `eager` key only exists in the **upload API** response, not the asset detail response. So the job would always find `$resource['eager']` empty and keep re-queuing forever.
+  - Fix #3 — `app/Jobs/ProcessFeaturedVideoUpload.php` (`handle()`): Changed `$resource['eager']` → `$resource['derived']` in the variant search loop. Confirmed via live log: after fix, `derived_raw` shows `[{"transformation":"c_limit,h_720,q_auto,w_720/mp4","format":"mp4","bytes":9045665,...}]` and the job activates the video on the first cron tick after upload.
   - Files changed:
-    - `app/Traits/UploadsToCloudinary.php` — 2 targeted edits: `uploadVideoToCloudinaryAsync()` eager transformation array + `deleteVideoFromCloudinary()` destroy param.
-  - **No migrations needed** — this fix changes only application logic and Cloudinary API calls, not the database schema.
-  - **Ready to deploy.** After pulling:
-    1. `php artisan config:clear && php artisan config:cache && php artisan route:cache` (no migrate needed)
-    2. Test: upload a real video from the admin panel
-    3. Watch `storage/logs/laravel.log` — the `uploadVideoToCloudinaryAsync: full Cloudinary response` debug line should show `eager` key present with a variant containing `transformation: "w_720,h_720,c_limit,q_auto,f_mp4"` (single format, not doubled)
-    4. After ~1-2 cron ticks the `ProcessFeaturedVideoUpload` job should find the eager variant and activate the video
-    5. The Cloudinary dashboard should show Derived assets with the `w_720` transformation (not just the raw source)
-  - Symptom: `SQLSTATE[HY000]: General error: 1364 Field 'video_url' doesn't have a default value` — thrown by `replaceFeaturedVideoAsync()` when creating the initial `GalleryVideo` record with `status='processing'`. At this point the final `video_url` is not yet known (it is populated later by `ProcessFeaturedVideoUpload` once Cloudinary finishes transcoding).
-  - Root cause: **Migration gap.** The original migration (`2026_07_20_000001_create_gallery_videos_table.php`) defined `video_url` as a required `string` column (`NOT NULL`, no default) — correct under the old synchronous design where `video_url` was always available at insert time. The async migration (`2026_07_21_000001_add_processing_status_to_gallery_videos_table.php`) added `pending_video_url` and `status` but did not make `video_url` nullable to match the new async flow.
-  - Files changed:
-    - `database/migrations/2026_07_21_000002_make_gallery_videos_video_url_nullable.php` — **NEW.** Alters `gallery_videos.video_url` to `->nullable()->change()`. Laravel 12 natively supports the `change()` method without requiring `doctrine/dbal`.
-    - `app/Models/GalleryVideo.php` — no changes needed. `$fillable` includes `video_url`, `$casts` has no non-null assertion, no validation rules assume non-null.
-    - API controllers already handle the nullable case safely: both `PublicApiController::featuredVideo()` and `AdminApiController::formatFeaturedVideo()` return `video_url: null` when `status !== 'active'`, so no changes were needed there either.
-  - **Deploy note:** Run `php artisan migrate` on the server to apply the new migration. Existing `active` records have a non-null `video_url` and are unaffected. Processing/failed records (if any existed before the fix) would now insert correctly.
-
-- **2026-07-21 — Bugfix (continued): duration and file_size NOT NULL constraint also breaks async upload flow**
-  - Symptom: `SQLSTATE[HY000]: General error: 1364 Field 'duration' doesn't have a default value` — same class of bug as the `video_url` fix. After `video_url` was made nullable, the same `replaceFeaturedVideoAsync()` INSERT still omitted `duration` and `file_size`, both of which were NOT NULL / no-default in the original migration.
-  - Root cause: Same migration gap. The original migration defined `duration` and `file_size` as required because under the synchronous design they were always known immediately from the Cloudinary upload response. The async flow inserts them later via `ProcessFeaturedVideoUpload` (after transcoding), so the initial INSERT must tolerate null.
-  - Schema audit: compared every NOT NULL / no-default column in the original migration against the 7-column `GalleryVideo::create()` in `replaceFeaturedVideoAsync()`:
-    | Column | In INSERT? | Original nullable? | Status |
-    |--------|-----------|-------------------|--------|
-    | `uploaded_by` | ✅ provided | NOT NULL FK | OK |
-    | `title` | ✅ provided | NOT NULL | OK |
-    | `public_id` | ✅ provided | NOT NULL | OK |
-    | `is_portrait` | ✅ provided | NOT NULL bool | OK |
-    | `expires_at` | ✅ provided | NOT NULL | OK |
-    | `status` | ✅ provided | default 'processing' | OK |
-    | `pending_video_url` | ✅ provided | nullable | OK |
-    | `thumbnail_url` | ❌ omitted | **nullable** | OK (already nullable) |
-    | `video_url` | ❌ omitted | **nullable** | OK (fixed in 000002) |
-    | `duration` | ❌ omitted | NOT NULL, no default | **→ fixed here** |
-    | `file_size` | ❌ omitted | NOT NULL, no default | **→ fixed here** |
-  - Files changed:
-    - `database/migrations/2026_07_21_000003_make_gallery_videos_duration_file_size_nullable.php` — **NEW.** Alters `gallery_videos.duration` and `gallery_videos.file_size` to `->nullable()->change()`.
-  - **Deploy note:** Run `php artisan migrate` on the server to apply. This is the third migration in the async-video series; all three must be applied (`2026_07_21_000001`, `000002`, `000003`).
+    - `app/Traits/UploadsToCloudinary.php` — eager transformation array + destroy param fix.
+    - `app/Jobs/ProcessFeaturedVideoUpload.php` — check `derived` instead of `eager`.
+  - **No migrations needed.**
+  - **Fully deployed and verified** (2026-07-21, ~15:00). Confirmed via production log: video uploaded → job activates in ~1-2 cron ticks → `derived` array present with `c_limit,h_720,q_auto,w_720/mp4` → bytes reduced from ~43 MB to ~8.6 MB (H.264/MP4 transcode). Cloudinary dashboard shows Derived assets with `w_720` transformation.
 
 
 ---
