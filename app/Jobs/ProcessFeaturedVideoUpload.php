@@ -87,6 +87,14 @@ class ProcessFeaturedVideoUpload implements ShouldQueue
             return;
         }
 
+        // TEMPORARY DEBUG — hapus setelah selesai troubleshooting
+        Log::debug('ProcessFeaturedVideoUpload: raw Cloudinary response', [
+            'gallery_video_id' => $this->galleryVideoId,
+            'public_id'       => $this->publicId,
+            'eager_raw'       => $resource['eager'] ?? 'NOT_PRESENT',
+            'resource_keys'   => array_keys((array) $resource),
+        ]);
+
         $eager = $resource['eager'] ?? [];
 
         // The Cloudinary Admin API only populates the eager array with COMPLETED
