@@ -103,6 +103,48 @@ trait UploadsToCloudinary
     }
 
     /**
+     * Upload a video to Cloudinary with asynchronous eager transformation.
+     *
+     * The upload returns immediately with a raw/unconverted video URL. Cloudinary
+     * queues the 720p H.264/MP4 transformation asynchronously. The raw URL is
+     * stored in `pending_video_url` on the GalleryVideo record; ProcessFeaturedVideoUpload
+     * polls Cloudinary until the transformation completes, then populates `video_url`
+     * and `status = 'active'`.
+     *
+     * This bypasses the synchronous upload size ceiling (Cloudinary rejects
+     * synchronous eager transforms for files over ~100 MB with
+     * "Video is too large to process synchronously").
+     *
+     * @param UploadedFile $file   The uploaded video file (mp4 or mov).
+     * @param string       $folder The Cloudinary folder to upload into.
+     * @return array{pending_video_url: string, public_id: string, is_portrait: bool}
+     */
+    protected function uploadVideoToCloudinaryAsync(UploadedFile $file, string $folder): array
+    {
+        $cloudinary = new Cloudinary(config('services.cloudinary.url'));
+
+        // Eager transformation: transcode to H.264/MP4, cap at 720p (shortest side),
+        // auto quality. eager_async=true means Cloudinary queues the transformation
+        // and the upload API call returns immediately with the raw video URL.
+        $result = $cloudinary->uploadApi()->upload($file->getRealPath(), [
+            'folder'          => $folder,
+            'resource_type'    => AssetType::VIDEO,
+            'eager'           => 'w_720,h_720,c_limit,q_auto,f_mp4',
+            'eager_async'     => true,
+            'raw_convert'     => null,
+        ]);
+
+        $width     = (int) ($result['width'] ?? 0);
+        $height    = (int) ($result['height'] ?? 0);
+
+        return [
+            'pending_video_url' => $result['secure_url'],
+            'public_id'        => $result['public_id'],
+            'is_portrait'      => $height > $width,
+        ];
+    }
+
+    /**
      * Upload a video to Cloudinary with automatic 720p transcoding and return
      * metadata needed to create a GalleryVideo record.
      *
@@ -188,6 +230,73 @@ trait UploadsToCloudinary
         // f_jpg: output as JPEG
         // fl_splice,fl_layer_apply: splice the first frame of the video as the thumbnail
         return $thumbnailUrl . '/w_300,q_auto,f_jpg,fl_splice,fl_layer_apply';
+    }
+
+    /**
+     * Replace the currently active featured video with a new one (async variant).
+     *
+     * Uploads the video with eager_async=true, creates a DB record with
+     * status='processing', then dispatches ProcessFeaturedVideoUpload to poll
+     * Cloudinary and populate the final video_url once the transformation is done.
+     *
+     * Unlike replaceFeaturedVideo (sync), this returns immediately so the
+     * frontend can show a "processing" state while transcoding runs on Cloudinary.
+     *
+     * @param UploadedFile $file   The uploaded video file.
+     * @param string       $title  The required title.
+     * @param int          $userId The authenticated admin's user ID.
+     * @return GalleryVideo The newly created GalleryVideo record (status='processing').
+     *
+     * @throws \Cloudinary\Api\Exception\ApiError  If the upload fails.
+     */
+    protected function replaceFeaturedVideoAsync(UploadedFile $file, string $title, int $userId): GalleryVideo
+    {
+        // ── Step 1: delete any currently active video ──────────────────────────
+        $previous = GalleryVideo::active()->first();
+
+        if ($previous) {
+            try {
+                $this->deleteVideoFromCloudinary($previous->public_id);
+                Log::info('replaceFeaturedVideoAsync: deleted previous Cloudinary asset', [
+                    'public_id' => $previous->public_id,
+                ]);
+            } catch (\Throwable $e) {
+                Log::error('replaceFeaturedVideoAsync: failed to delete previous Cloudinary asset', [
+                    'public_id' => $previous->public_id,
+                    'error'     => $e->getMessage(),
+                ]);
+            }
+            $previous->delete();
+            Log::info('replaceFeaturedVideoAsync: deleted previous GalleryVideo record', [
+                'id' => $previous->id,
+            ]);
+        }
+
+        // ── Step 2: upload with async eager, create processing record ───────────
+        $meta = $this->uploadVideoToCloudinaryAsync($file, 'kartar/videos');
+
+        $galleryVideo = GalleryVideo::create([
+            'uploaded_by'       => $userId,
+            'title'            => $title,
+            'pending_video_url' => $meta['pending_video_url'],
+            'public_id'        => $meta['public_id'],
+            'is_portrait'      => $meta['is_portrait'],
+            'expires_at'       => now()->addDays(7),
+            'status'           => 'processing',
+        ]);
+
+        // Dispatch the polling job — it will run on the next queue:work cron tick.
+        \App\Jobs\ProcessFeaturedVideoUpload::dispatch(
+            $galleryVideo->id,
+            $meta['public_id']
+        );
+
+        Log::info('replaceFeaturedVideoAsync: processing record created, job dispatched', [
+            'gallery_video_id' => $galleryVideo->id,
+            'public_id'       => $meta['public_id'],
+        ]);
+
+        return $galleryVideo;
     }
 
     /**

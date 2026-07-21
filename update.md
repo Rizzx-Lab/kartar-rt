@@ -132,6 +132,27 @@ A standalone "featured video" feature for the Gallery page. Admin can upload one
   - `.env` is unchanged — `CLOUDINARY_URL` still lives there and is now correctly read through Laravel's config system.
   - **Deploy note:** After pulling this fix, `php artisan config:cache` must be re-run in production for the change to take effect (the new `services.cloudinary` key needs to be serialised into `bootstrap/cache/config.php`). If reverting, run `php artisan config:clear` first.
 
+- **2026-07-21 — Bugfix: Large video uploads fail with "Video is too large to process synchronously"**
+  - Symptom: Uploading a 43.4 MB video via `featuredVideoStore` returned `Cloudinary\Api\Exception\BadRequest: Video is too large to process synchronously, please use an eager transformation with eager_async=true`.
+  - Root cause: `uploadVideoToCloudinary()` used `eager_async=false` (synchronous eager transformation). Cloudinary enforces a file-size ceiling for synchronous transformations — any file above that threshold must use `eager_async=true`. The upload was rejected before the transformation started.
+  - Option chosen: **Async job + cron-aligned polling (Option 2)**. Reasoning:
+    - The project's queue runs via cron as `php artisan queue:work --once --timeout=30` — not a persistent worker. A single job must finish within 30 s and re-queue itself for the next cron tick.
+    - Webhook (Option 1) would require a publicly reachable URL, Cloudinary dashboard registration, and new env vars — hard to test locally.
+    - Polling job is idiomatic for this project's infrastructure.
+  - Job design (`ProcessFeaturedVideoUpload`): single `adminApi()->asset()` call per job execution. If not done: `$this->release(60)`. If done: updates DB. `$tries=10` (~10-minute window), `$timeout=25`. On final failure: marks `status='failed'`, deletes the Cloudinary asset.
+    - Completion detection: the Admin API's `eager` array is only populated with **completed** variants. For `eager_async=true`, a pending transformation does NOT appear in the `eager` array at all — it only surfaces once Cloudinary has finished generating the transformed file. There is no per-variant status field; the entry's presence (with a non-null `secure_url`) is the completion signal. The job checks for the `w_720` variant in the eager array; if absent, it re-queues.
+  - Duration validation (> 180 s) moved from controller to the job — if exceeded, job marks record `failed` and cleans up Cloudinary.
+  - Files changed / created:
+    - `database/migrations/2026_07_21_000001_add_processing_status_to_gallery_videos_table.php` — adds `pending_video_url` and `status` columns to `gallery_videos`.
+    - `app/Jobs/ProcessFeaturedVideoUpload.php` — NEW. Single-check + release(60) pattern, max 10 attempts, timeout 25 s.
+    - `app/Traits/UploadsToCloudinary.php` — added `uploadVideoToCloudinaryAsync()` (eager_async=true) and `replaceFeaturedVideoAsync()` (dispatches job, returns immediately).
+    - `app/Models/GalleryVideo.php` — added `pending_video_url` + `status` to `$fillable`; `scopeActive()` now also filters `status = 'active'`.
+    - `app/Http/Controllers/Api/AdminApiController.php` — `featuredVideoStore` uses async flow; `featuredVideoDestroy` handles both active and processing records; `formatFeaturedVideo` exposes `status`.
+    - `app/Http/Controllers/Api/PublicApiController.php` — `featuredVideo()` returns most recent non-expired record regardless of status, exposes `status`.
+    - `frontend/lib/api.ts` — `FeaturedVideo` type: added `status`, `video_url` now nullable.
+    - `frontend/app/admin/galleries/page.tsx` — `processingVideo` state; polling `useEffect` every 10 s; amber "● Processing" badge; spinner + progress bar during processing; "Batalkan" button; form disabled while processing.
+  - **Deploy note:** Run `php artisan migrate` to add the new columns. Ensure the cron `* * * * * php /path/to/artisan queue:work --once --timeout=30` is active — without it, videos will stay in `processing` indefinitely.
+
 ---
 
 ## Feature Complete ✅

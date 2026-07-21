@@ -299,7 +299,12 @@ class PublicApiController extends Controller
      */
     public function featuredVideo(): JsonResponse
     {
-        $video = GalleryVideo::active()->first();
+        // Return the most recent non-expired video regardless of status.
+        // The frontend polls this endpoint after upload to detect when
+        // status transitions from 'processing' to 'active'.
+        $video = GalleryVideo::where('expires_at', '>', now())
+            ->orderBy('created_at', 'desc')
+            ->first();
 
         if (!$video) {
             return response()->json([
@@ -311,12 +316,13 @@ class PublicApiController extends Controller
         return response()->json([
             'success' => true,
             'data'    => [
-                'id'            => $video->id,
-                'title'         => $video->title,
-                'video_url'     => $video->video_url,
-                'thumbnail_url' => $video->thumbnail_url,
-                'duration'      => $video->duration,
+                'id'             => $video->id,
+                'title'          => $video->title,
+                'video_url'      => $video->status === 'active' ? $video->video_url : null,
+                'thumbnail_url'  => $video->thumbnail_url,
+                'duration'       => $video->duration,
                 'is_portrait'   => $video->is_portrait,
+                'status'        => $video->status,
                 'expires_at'    => $video->expires_at->toIso8601String(),
             ],
         ]);

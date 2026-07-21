@@ -12,15 +12,17 @@ class GalleryVideo extends Model
         'title',
         'video_url',
         'public_id',
+        'pending_video_url',
         'thumbnail_url',
         'duration',
         'file_size',
         'is_portrait',
+        'status',
         'expires_at',
     ];
 
     protected $casts = [
-        'expires_at' => 'datetime',
+        'expires_at'  => 'datetime',
         'is_portrait' => 'boolean',
     ];
 
@@ -31,6 +33,7 @@ class GalleryVideo extends Model
 
     public function scopeActive($query)
     {
-        return $query->where('expires_at', '>', now());
+        return $query->where('status', 'active')
+                     ->where('expires_at', '>', now());
     }
 }

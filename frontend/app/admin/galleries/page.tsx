@@ -27,11 +27,12 @@ interface GalleryFormData {
 interface FeaturedVideo {
   id: number;
   title: string;
-  video_url: string;
+  video_url: string | null;
   thumbnail_url: string | null;
   duration: number;
   file_size: number;
   is_portrait: boolean;
+  status: 'processing' | 'active' | 'failed';
   expires_at: string;
   created_at: string;
   uploader: { id: number; name: string } | null;
@@ -70,6 +71,9 @@ export default function AdminGalleriesPage() {
   // Featured video state
   const [featuredVideo, setFeaturedVideo] = useState<FeaturedVideo | null>(null);
   const [loadingFeatured, setLoadingFeatured] = useState(true);
+  // Tracks a video that was just uploaded and is awaiting Cloudinary
+  // transformation (status === 'processing'). Polled until it becomes 'active'.
+  const [processingVideo, setProcessingVideo] = useState<FeaturedVideo | null>(null);
   const [videoTitle, setVideoTitle] = useState('');
   const [selectedVideo, setSelectedVideo] = useState<File | null>(null);
   const [videoPreview, setVideoPreview] = useState<string | null>(null);
@@ -158,15 +162,62 @@ export default function AdminGalleriesPage() {
       );
       const data = await res.json();
       if (data.success && data.data) {
-        setFeaturedVideo(data.data);
+        const v: FeaturedVideo = data.data;
+        // If there's a processing video in-flight, keep tracking it.
+        // The polling useEffect below will update it.
+        setProcessingVideo(prev =>
+          prev && prev.id === v.id && v.status === 'active' ? null : prev
+        );
+        setFeaturedVideo(v.status === 'active' ? v : null);
       } else {
         setFeaturedVideo(null);
+        setProcessingVideo(null);
       }
     } catch {
       setFeaturedVideo(null);
     }
     setLoadingFeatured(false);
   };
+
+  // Poll the public API every 10 seconds while a video is processing.
+  // When status transitions to 'active', update featuredVideo and clear processingVideo.
+  // If status becomes 'failed', show an error and clear processingVideo.
+  useEffect(() => {
+    if (!processingVideo) return;
+
+    const interval = setInterval(async () => {
+      const token = localStorage.getItem('admin_token');
+      try {
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1'}/featured-video`,
+          { headers: token ? { Authorization: `Bearer ${token}` } : {} }
+        );
+        const data = await res.json();
+        if (!data.success || !data.data) {
+          clearInterval(interval);
+          setProcessingVideo(null);
+          setUploadError('Video gagal diproses oleh Cloudinary. Silakan upload ulang.');
+          return;
+        }
+
+        const v: FeaturedVideo = data.data;
+
+        if (v.status === 'active') {
+          clearInterval(interval);
+          setFeaturedVideo(v);
+          setProcessingVideo(null);
+        } else if (v.status === 'failed') {
+          clearInterval(interval);
+          setProcessingVideo(null);
+          setUploadError('Video gagal diproses (durasi melebihi 3 menit atau error Cloudinary). Silakan upload ulang.');
+        }
+      } catch {
+        // Network error — keep polling.
+      }
+    }, 10_000);
+
+    return () => clearInterval(interval);
+  }, [processingVideo]);
 
   const handleVideoSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -222,7 +273,9 @@ export default function AdminGalleriesPage() {
     const response = await uploadFeaturedVideo(form);
 
     if (response.success) {
-      setFeaturedVideo(response.data);
+      const newVideo: FeaturedVideo = response.data;
+      setProcessingVideo(newVideo);
+      setFeaturedVideo(null); // hide any previously active video during processing
       setVideoTitle('');
       setSelectedVideo(null);
       setVideoPreview(null);
@@ -240,6 +293,7 @@ export default function AdminGalleriesPage() {
     const response = await deleteFeaturedVideo();
     if (response.success) {
       setFeaturedVideo(null);
+      setProcessingVideo(null);
     } else {
       alert(response.message || 'Gagal menghapus video.');
     }
@@ -390,9 +444,14 @@ export default function AdminGalleriesPage() {
               ● Aktif
             </span>
           )}
+          {processingVideo && (
+            <span className="px-3 py-1 bg-amber-100 text-amber-700 text-xs font-medium rounded-full">
+              ● Processing
+            </span>
+          )}
         </div>
 
-        {/* Active video display */}
+        {/* Active / Processing / Empty state */}
         {loadingFeatured ? (
           <div className="flex gap-4">
             <div className="w-40 h-24 bg-gray-200 animate-pulse rounded-lg" />
@@ -445,6 +504,37 @@ export default function AdminGalleriesPage() {
               </button>
             </div>
           </div>
+        ) : processingVideo ? (
+          /* Processing state — video is transcoding on Cloudinary */
+          <div className="space-y-3">
+            <div className="flex gap-4 items-start">
+              <div className="w-40 h-24 bg-gray-100 rounded-lg shrink-0 flex items-center justify-center">
+                <svg className="w-8 h-8 text-gray-400 animate-spin" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 100 16v-4l-3 3 3 3v-4a8 8 0 01-8-8z" />
+                </svg>
+              </div>
+              <div className="flex-1 min-w-0">
+                <h3 className="font-medium text-navy-800 truncate">{processingVideo.title}</h3>
+                <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+                  <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                  Sedang diproses — video akan muncul otomatis
+                </p>
+              </div>
+              <button
+                onClick={handleDeleteVideo}
+                disabled={deletingVideo}
+                className="shrink-0 px-3 py-1.5 text-sm text-red-600 border border-red-200 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+              >
+                {deletingVideo ? 'Menghapus...' : 'Batalkan'}
+              </button>
+            </div>
+            <div className="w-full bg-gray-100 rounded-full h-1">
+              <div className="bg-amber-400 h-1 rounded-full w-1/2 animate-pulse" />
+            </div>
+          </div>
         ) : (
           <p className="text-sm text-gray-500">Belum ada video featured aktif.</p>
         )}
@@ -464,7 +554,7 @@ export default function AdminGalleriesPage() {
                 required
                 placeholder="Contoh: Momen Seru Kegiatan Baksos"
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-500 focus:border-gold-500"
-                disabled={uploadingVideo}
+                disabled={uploadingVideo || !!processingVideo}
               />
             </div>
 
@@ -480,7 +570,7 @@ export default function AdminGalleriesPage() {
                   onChange={handleVideoSelect}
                   className="hidden"
                   id="video-upload-input"
-                  disabled={uploadingVideo}
+                  disabled={uploadingVideo || !!processingVideo}
                 />
                 <label
                   htmlFor="video-upload-input"
@@ -541,7 +631,7 @@ export default function AdminGalleriesPage() {
           <div className="flex items-center gap-3">
             <button
               type="submit"
-              disabled={uploadingVideo || !selectedVideo || !videoTitle.trim()}
+              disabled={uploadingVideo || !!processingVideo || !selectedVideo || !videoTitle.trim()}
               className="px-4 py-2 bg-gold-500 hover:bg-gold-600 text-navy-900 font-medium rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
             >
               {uploadingVideo ? (
@@ -563,6 +653,7 @@ export default function AdminGalleriesPage() {
                   setVideoTitle('');
                   setUploadError(null);
                   setIsLandscape(false);
+                  setProcessingVideo(null);
                 }}
                 className="px-4 py-2 text-sm text-gray-600 hover:text-gray-800 transition-colors"
               >

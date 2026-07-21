@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Jobs\ProcessFeaturedVideoUpload;
 use App\Traits\UploadsToCloudinary;
 use App\Models\{Program, ProgramSession, Announcement, Gallery, GalleryPhoto, GalleryVideo, Contact, User, OrganizationMember, SiteSetting};
 use Illuminate\Http\{Request, JsonResponse};
@@ -1111,41 +1112,30 @@ class AdminApiController extends Controller
     /**
      * Upload / replace the featured video.
      *
-     * Validation covers file type, size, and title via the trait's rules.
-     * Duration (> 180s) is checked post-upload using Cloudinary metadata.
-     * Replacing an existing video deletes it from Cloudinary and DB before
-     * creating the new record (handled inside replaceFeaturedVideo).
+     * The upload uses Cloudinary's async eager transformation (eager_async=true)
+     * so large files (e.g. 43 MB) don't hit the synchronous processing ceiling.
+     * The API returns immediately with status='processing'; the actual video URL
+     * and duration become available once ProcessFeaturedVideoUpload polls
+     * Cloudinary and the transformation completes (~seconds to a few minutes).
+     *
+     * Duration (> 180 s) is validated in ProcessFeaturedVideoUpload, not here —
+     * if the uploaded video exceeds 3 minutes the job marks the record as
+     * failed and cleans up the Cloudinary asset.
+     *
+     * Replacing an existing video deletes it from Cloudinary and DB before the
+     * new record is created (handled inside replaceFeaturedVideoAsync).
      */
     public function featuredVideoStore(Request $request): JsonResponse
     {
         $validated = $request->validate($this->videoUploadRules());
 
-        $galleryVideo = $this->replaceFeaturedVideo(
+        // Upload with async eager transformation, create processing record,
+        // dispatch the polling job. Returns immediately.
+        $galleryVideo = $this->replaceFeaturedVideoAsync(
             $request->file('video'),
             $validated['title'],
             auth()->id()
         );
-
-        // Duration check: reject if the transcoded video exceeds 3 minutes.
-        // This cannot be validated with standard Laravel rules — it requires
-        // Cloudinary's returned metadata after upload.
-        if ($galleryVideo->duration > 180) {
-            // Roll back: delete the just-uploaded asset from Cloudinary
-            try {
-                $this->deleteVideoFromCloudinary($galleryVideo->public_id);
-            } catch (\Throwable $e) {
-                Log::error('featuredVideoStore: failed to delete oversized video from Cloudinary', [
-                    'public_id' => $galleryVideo->public_id,
-                    'error'     => $e->getMessage(),
-                ]);
-            }
-            // Delete the orphaned DB record
-            $galleryVideo->delete();
-
-            throw \Illuminate\Validation\ValidationException::withMessages([
-                'video' => ['Video terlalu panjang. Durasi maksimum adalah 3 menit (180 detik).'],
-            ]);
-        }
 
         // Invalidate gallery-related caches (featured video may affect the gallery page layout)
         $this->invalidateGalleryCaches();
@@ -1156,16 +1146,20 @@ class AdminApiController extends Controller
         return response()->json([
             'success' => true,
             'data'    => $this->formatFeaturedVideo($galleryVideo),
-            'message' => 'Video featued berhasil diupload.',
+            'message' => 'Video featured berhasil diupload. Processing...',
         ]);
     }
 
     /**
-     * Delete the currently active featured video (if any).
+     * Delete the currently active or processing featured video (if any).
+     *
+     * Unlike featuredVideoDestroy, this targets whichever record exists regardless
+     * of status — useful for cleaning up a processing video the admin regrets.
      */
     public function featuredVideoDestroy(): JsonResponse
     {
-        $video = GalleryVideo::active()->first();
+        // Find any video: active or still processing.
+        $video = GalleryVideo::whereIn('status', ['active', 'processing'])->first();
 
         if (!$video) {
             return response()->json([
@@ -1209,14 +1203,15 @@ class AdminApiController extends Controller
     private function formatFeaturedVideo(GalleryVideo $video): array
     {
         return [
-            'id'            => $video->id,
-            'title'         => $video->title,
-            'video_url'     => $video->video_url,
-            'thumbnail_url' => $video->thumbnail_url,
-            'duration'      => $video->duration,
-            'file_size'     => $video->file_size,
+            'id'             => $video->id,
+            'title'          => $video->title,
+            'video_url'      => $video->status === 'active' ? $video->video_url : null,
+            'thumbnail_url'  => $video->thumbnail_url,
+            'duration'       => $video->duration,
+            'file_size'      => $video->file_size,
             'is_portrait'   => $video->is_portrait,
-            'expires_at'    => $video->expires_at->toIso8601String(),
+            'status'        => $video->status,
+            'expires_at'     => $video->expires_at->toIso8601String(),
             'created_at'    => $video->created_at->toIso8601String(),
             'uploader'      => $video->uploader ? [
                 'id'   => $video->uploader->id,

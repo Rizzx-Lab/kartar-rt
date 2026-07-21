@@ -148,10 +148,11 @@ export async function getFeaturedVideo() {
 export interface FeaturedVideo {
   id: number;
   title: string;
-  video_url: string;
+  video_url: string | null;
   thumbnail_url: string | null;
   duration: number;
   is_portrait: boolean;
+  status: 'processing' | 'active' | 'failed';
   expires_at: string;
 }
 
