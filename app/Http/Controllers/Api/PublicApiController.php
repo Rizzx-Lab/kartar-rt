@@ -346,6 +346,9 @@ class PublicApiController extends Controller
                     'name' => $m->name,
                     'position' => $m->position,
                     'photo' => $m->photo,
+                    'photo_x' => $m->photo_x,
+                    'photo_y' => $m->photo_y,
+                    'photo_scale' => $m->photo_scale,
                     'order' => $m->order,
                 ]);
 

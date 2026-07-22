@@ -6,22 +6,31 @@ use App\Models\OrganizationMember;
 use App\Notifications\AdminActivityNotification;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Cache;
 
 class OrganizationObserver
 {
     public function created(OrganizationMember $member): void
     {
+        $this->clearAboutCache();
         $this->notifySuperAdmins($member, 'created');
     }
 
     public function updated(OrganizationMember $member): void
     {
+        $this->clearAboutCache();
         $this->notifySuperAdmins($member, 'updated');
     }
 
     public function deleted(OrganizationMember $member): void
     {
+        $this->clearAboutCache();
         $this->notifySuperAdmins($member, 'deleted');
+    }
+
+    protected function clearAboutCache(): void
+    {
+        Cache::forget('api:about');
     }
 
     protected function notifySuperAdmins(OrganizationMember $member, string $action): void
