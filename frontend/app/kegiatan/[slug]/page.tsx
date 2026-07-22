@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { getProgram, Program, Session } from '@/lib/api';
 import {
   ArrowLeft,
@@ -15,11 +15,70 @@ import {
   CheckCircle,
   XCircle,
   CalendarClock,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react';
 
 interface ProgramWithSessions extends Program {
   sessions: Session[];
 }
+
+// Helper function to auto-calculate session status based on date
+const calculateSessionStatus = (session: Session): 'upcoming' | 'done' | 'cancelled' => {
+  // If cancelled in DB, keep it
+  if (session.status === 'cancelled') return 'cancelled';
+
+  // Auto-calculate based on date
+  const now = new Date();
+  const sessionDate = new Date(session.held_at);
+
+  if (sessionDate > now) {
+    return 'upcoming';
+  } else {
+    return 'done';
+  }
+};
+
+// Helper function to find nearest upcoming session
+const findNearestUpcomingSession = (sessions: Session[]): Session | null => {
+  const now = new Date();
+
+  // Filter sessions that are upcoming (based on date, not status)
+  const upcomingSessions = sessions.filter(session => {
+    const sessionDate = new Date(session.held_at);
+    // Check if date is in the future AND not cancelled
+    return sessionDate > now && session.status !== 'cancelled';
+  });
+
+  if (upcomingSessions.length === 0) return null;
+
+  // Sort by date (nearest first)
+  upcomingSessions.sort((a, b) =>
+    new Date(a.held_at).getTime() - new Date(b.held_at).getTime()
+  );
+
+  return upcomingSessions[0];
+};
+
+// Helper function to find nearest past session (for "Sesi Terakhir")
+const findNearestPastSession = (sessions: Session[]): Session | null => {
+  const now = new Date();
+
+  // Filter sessions that are done (based on date)
+  const pastSessions = sessions.filter(session => {
+    const sessionDate = new Date(session.held_at);
+    return sessionDate <= now && session.status !== 'cancelled';
+  });
+
+  if (pastSessions.length === 0) return null;
+
+  // Sort by date (nearest first, descending)
+  pastSessions.sort((a, b) =>
+    new Date(b.held_at).getTime() - new Date(a.held_at).getTime()
+  );
+
+  return pastSessions[0];
+};
 
 const getImageUrl = (path: string | null): string | null => {
   if (!path) return null;
@@ -65,6 +124,7 @@ export default function ProgramDetailPage() {
   const [program, setProgram] = useState<ProgramWithSessions | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<'upcoming' | 'done' | 'cancelled'>('upcoming');
+  const [expandedSessions, setExpandedSessions] = useState(false);
 
   // Get date param from URL (when redirected from program detail)
   const searchParams = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
@@ -88,6 +148,52 @@ export default function ProgramDetailPage() {
       fetchProgram();
     }
   }, [slug]);
+
+  // Filter and categorize sessions with auto-calculated status
+  const getSessionsByStatus = () => {
+    if (!program) return { upcoming: [], done: [], cancelled: [] };
+
+    const categorized = {
+      upcoming: [] as Session[],
+      done: [] as Session[],
+      cancelled: [] as Session[],
+    };
+
+    program.sessions.forEach(session => {
+      const calculatedStatus = calculateSessionStatus(session);
+      categorized[calculatedStatus].push(session);
+    });
+
+    // Sort each category by date
+    categorized.upcoming.sort((a, b) =>
+      new Date(a.held_at).getTime() - new Date(b.held_at).getTime()
+    );
+    categorized.done.sort((a, b) =>
+      new Date(b.held_at).getTime() - new Date(a.held_at).getTime()
+    );
+    categorized.cancelled.sort((a, b) =>
+      new Date(b.held_at).getTime() - new Date(a.held_at).getTime()
+    );
+
+    return categorized;
+  };
+
+  const { upcoming: upcomingSessions, done: doneSessions, cancelled: cancelledSessions } = getSessionsByStatus();
+
+  const currentSessions = activeTab === 'upcoming' ? upcomingSessions
+    : activeTab === 'done' ? doneSessions
+    : cancelledSessions;
+
+  // Find nearest upcoming and nearest past sessions for display
+  const nearestUpcoming = findNearestUpcomingSession(program?.sessions || []);
+  const nearestPast = findNearestPastSession(program?.sessions || []);
+
+  // Limit sessions to show when collapsed
+  const COLLAPSED_LIMIT = 5;
+  const displayedSessions = expandedSessions
+    ? currentSessions
+    : currentSessions.slice(0, COLLAPSED_LIMIT);
+  const hasMoreSessions = currentSessions.length > COLLAPSED_LIMIT;
 
   if (isLoading) {
     return (
@@ -126,14 +232,6 @@ export default function ProgramDetailPage() {
       </div>
     );
   }
-
-  const upcomingSessions = program.sessions.filter(s => s.status === 'upcoming');
-  const doneSessions = program.sessions.filter(s => s.status === 'done');
-  const cancelledSessions = program.sessions.filter(s => s.status === 'cancelled');
-
-  const currentSessions = activeTab === 'upcoming' ? upcomingSessions
-    : activeTab === 'done' ? doneSessions
-    : cancelledSessions;
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -391,135 +489,159 @@ export default function ProgramDetailPage() {
                 </p>
               </motion.div>
             ) : (
-              <motion.div
-                key={activeTab}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -20 }}
-                transition={{ duration: 0.3 }}
-              >
-                {currentSessions.map((session, index) => (
-                  <motion.div
-                    key={session.id}
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1 }}
-                    whileHover={{ y: -4, boxShadow: '0 15px 35px rgba(0,0,0,0.1)' }}
-                    className="bg-white rounded-xl p-6 shadow-sm hover:shadow-md transition-all mb-4"
-                  >
-                    <div className="flex flex-col md:flex-row md:items-start gap-4">
-                      {/* Date Badge */}
+              <>
+                <motion.div
+                  key={activeTab}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -20 }}
+                  transition={{ duration: 0.3 }}
+                  className="space-y-3"
+                >
+                  {displayedSessions.map((session, index) => {
+                    // Calculate status dynamically
+                    const calculatedStatus = calculateSessionStatus(session);
+
+                    return (
                       <motion.div
-                        whileHover={{ scale: 1.05, rotate: -2 }}
-                        className={`shrink-0 w-16 h-16 rounded-xl flex flex-col items-center justify-center ${
-                          session.status === 'upcoming' ? 'bg-blue-600 text-white'
-                          : session.status === 'done' ? 'bg-green-600 text-white'
-                          : 'bg-red-600 text-white'
-                        }`}
+                        key={session.id}
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        whileHover={{ y: -2, boxShadow: '0 8px 25px rgba(0,0,0,0.08)' }}
+                        className="bg-white rounded-xl p-4 shadow-sm hover:shadow-md transition-all"
                       >
-                        <div className="text-2xl font-bold">
-                          {new Date(session.held_at).getDate()}
-                        </div>
-                        <div className="text-xs uppercase">
-                          {new Date(session.held_at).toLocaleDateString('id-ID', { month: 'short' })}
-                        </div>
-                      </motion.div>
+                        <div className="flex items-start gap-3">
+                          {/* Date Badge - Compact */}
+                          <div className={`shrink-0 w-12 h-12 rounded-lg flex flex-col items-center justify-center ${
+                            calculatedStatus === 'upcoming' ? 'bg-blue-600 text-white'
+                            : calculatedStatus === 'done' ? 'bg-green-600 text-white'
+                            : 'bg-red-600 text-white'
+                          }`}>
+                            <div className="text-lg font-bold leading-none">
+                              {new Date(session.held_at).getDate()}
+                            </div>
+                            <div className="text-[10px] uppercase leading-none mt-0.5">
+                              {new Date(session.held_at).toLocaleDateString('id-ID', { month: 'short' })}
+                            </div>
+                          </div>
 
-                      {/* Session Details */}
-                      <div className="flex-1">
-                        <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                          {session.title}
-                        </h3>
+                          {/* Session Details - Compact */}
+                          <div className="flex-1 min-w-0">
+                            <h3 className="font-semibold text-gray-900 text-sm mb-1">
+                              {session.title}
+                            </h3>
 
-                        {session.description && (
-                          <p className="text-gray-600 text-sm mb-4">
-                            {session.description}
-                          </p>
-                        )}
+                            <div className="flex flex-wrap items-center gap-2 text-xs text-gray-500">
+                              <span className="flex items-center gap-1">
+                                <Clock className="w-3 h-3" />
+                                {formatTime(session.held_at)}
+                              </span>
 
-                        <div className="flex flex-wrap gap-4 text-sm text-gray-500">
-                          <motion.div
-                            whileHover={{ scale: 1.05 }}
-                            className="flex items-center gap-1.5"
-                          >
-                            <Clock className="w-4 h-4" />
-                            <span>{formatTime(session.held_at)}</span>
-                          </motion.div>
+                              {session.location && (
+                                <span className="flex items-center gap-1">
+                                  <MapPin className="w-3 h-3" />
+                                  {session.location}
+                                </span>
+                              )}
 
-                          {session.location && (
-                            <motion.div
-                              whileHover={{ scale: 1.05 }}
-                              className="flex items-center gap-1.5"
-                            >
-                              <MapPin className="w-4 h-4" />
-                              <span>{session.location}</span>
-                            </motion.div>
-                          )}
+                              {session.participants_count > 0 && (
+                                <span className="flex items-center gap-1">
+                                  <Users className="w-3 h-3" />
+                                  {session.participants_count}
+                                </span>
+                              )}
+                            </div>
+                          </div>
 
-                          {session.participants_count && (
-                            <motion.div
-                              whileHover={{ scale: 1.05 }}
-                              className="flex items-center gap-1.5"
-                            >
-                              <Users className="w-4 h-4" />
-                              <span>{session.participants_count} Peserta</span>
-                            </motion.div>
-                          )}
-
-                          {session.photos_count > 0 && (
-                            <motion.div
-                              whileHover={{ scale: 1.05 }}
-                              className="flex items-center gap-1.5"
-                            >
-                              <Image className="w-4 h-4" />
-                              <span>{session.photos_count} Foto</span>
-                            </motion.div>
-                          )}
-                        </div>
-
-                        {/* Status Badge */}
-                        <div className="mt-4">
-                          <motion.span
-                            whileHover={{ scale: 1.05 }}
-                            className={`inline-flex items-center gap-1 px-2.5 py-1 text-xs font-medium rounded-full ${
-                              session.status === 'upcoming'
-                                ? 'bg-blue-100 text-blue-700'
-                                : session.status === 'done'
-                                ? 'bg-green-100 text-green-700'
-                                : 'bg-red-100 text-red-700'
-                            }`}
-                          >
-                            {session.status === 'upcoming' && <CalendarClock className="w-3 h-3" />}
-                            {session.status === 'done' && <CheckCircle className="w-3 h-3" />}
-                            {session.status === 'cancelled' && <XCircle className="w-3 h-3" />}
-                            {session.status === 'upcoming' ? 'Akan Datang'
-                             : session.status === 'done' ? 'Selesai'
+                          {/* Status Badge - Compact */}
+                          <span className={`shrink-0 px-2 py-1 text-[10px] font-medium rounded-full ${
+                            calculatedStatus === 'upcoming'
+                              ? 'bg-blue-100 text-blue-700'
+                              : calculatedStatus === 'done'
+                              ? 'bg-green-100 text-green-700'
+                              : 'bg-red-100 text-red-700'
+                          }`}>
+                            {calculatedStatus === 'upcoming' ? 'Akan Datang'
+                             : calculatedStatus === 'done' ? 'Selesai'
                              : 'Dibatalkan'}
-                          </motion.span>
-                          {session.status === 'done' && (
-                            <motion.button
-                              whileHover={{ scale: 1.05 }}
-                              whileTap={{ scale: 0.95 }}
-                              onClick={() => {
-                                const dateStr = new Date(session.held_at).toISOString().split('T')[0];
-                                router.push(`/galeri?date=${dateStr}`);
-                              }}
-                              className="ml-2 inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-full bg-amber-500 text-white hover:bg-amber-600 transition-colors"
-                            >
-                              <Image className="w-3 h-3" />
-                              Lihat Dokumentasi
-                            </motion.button>
-                          )}
+                          </span>
                         </div>
-                      </div>
-                    </div>
-                  </motion.div>
-                ))}
-              </motion.div>
+
+                        {/* Expanded Details */}
+                        <AnimatePresence>
+                          {expandedSessions && (
+                            <motion.div
+                              initial={{ height: 0, opacity: 0 }}
+                              animate={{ height: 'auto', opacity: 1 }}
+                              exit={{ height: 0, opacity: 0 }}
+                              transition={{ duration: 0.2 }}
+                              className="overflow-hidden"
+                            >
+                              <div className="mt-3 pt-3 border-t border-gray-100">
+                                {session.description && (
+                                  <p className="text-sm text-gray-600 mb-3">
+                                    {session.description}
+                                  </p>
+                                )}
+
+                                {session.photos_count > 0 && (
+                                  <div className="flex items-center justify-between">
+                                    <span className="flex items-center gap-1 text-xs text-gray-500">
+                                      <Image className="w-3 h-3" />
+                                      {session.photos_count} Foto
+                                    </span>
+                                    {calculatedStatus === 'done' && (
+                                      <motion.button
+                                        whileTap={{ scale: 0.95 }}
+                                        onClick={() => {
+                                          const dateStr = new Date(session.held_at).toISOString().split('T')[0];
+                                          router.push(`/galeri?date=${dateStr}`);
+                                        }}
+                                        className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-medium rounded-full bg-amber-500 text-white hover:bg-amber-600 transition-colors"
+                                      >
+                                        <Image className="w-3 h-3" />
+                                        Dokumentasi
+                                      </motion.button>
+                                    )}
+                                  </div>
+                                )}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </motion.div>
+                    );
+                  })}
+                </motion.div>
+
+                {/* Show More/Less Button */}
+                {hasMoreSessions && (
+                  <motion.button
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ delay: 0.3 }}
+                    onClick={() => setExpandedSessions(!expandedSessions)}
+                    className="w-full py-3 bg-gray-100 hover:bg-gray-200 rounded-xl text-sm font-medium text-gray-700 flex items-center justify-center gap-2 transition-colors"
+                  >
+                    {expandedSessions ? (
+                      <>
+                        <ChevronUp className="w-4 h-4" />
+                        Tampilkan Lebih Sedikit
+                      </>
+                    ) : (
+                      <>
+                        <ChevronDown className="w-4 h-4" />
+                        Lihat {currentSessions.length - COLLAPSED_LIMIT} Sesi Lainnya
+                      </>
+                    )}
+                  </motion.button>
+                )}
+              </>
             )}
           </motion.div>
 
-          {/* Full Date Info */}
+          {/* Full Date Info - Uses Nearest Sessions */}
           {currentSessions.length > 0 && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -542,7 +664,11 @@ export default function ProgramDetailPage() {
                      : 'Sesi Dibatalkan'}
                   </p>
                   <p className="text-sm text-amber-700">
-                    {formatDate(currentSessions[0].held_at)}
+                    {activeTab === 'upcoming' && nearestUpcoming
+                      ? formatDate(nearestUpcoming.held_at)
+                      : activeTab === 'done' && nearestPast
+                      ? formatDate(nearestPast.held_at)
+                      : formatDate(currentSessions[0].held_at)}
                   </p>
                 </div>
               </div>
