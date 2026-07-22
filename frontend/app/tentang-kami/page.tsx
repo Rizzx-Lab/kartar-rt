@@ -22,6 +22,8 @@ interface OrganizationMember {
   name: string;
   position: string;
   photo: string | null;
+  photo_x: number;
+  photo_y: number;
   order: number;
 }
 
@@ -211,6 +213,7 @@ export default async function AboutPage() {
                           src={getImageUrl(member.photo)!}
                           alt={member.name}
                           className="w-28 h-28 mx-auto rounded-full object-cover border-3 border-gray-100 group-hover:border-gold-500 transition-colors"
+                          style={{ objectPosition: `${member.photo_x ?? 50}% ${member.photo_y ?? 50}%` }}
                         />
                       ) : (
                         <div className="w-28 h-28 mx-auto bg-gradient-to-br from-gray-200 to-gray-300 rounded-full flex items-center justify-center border-3 border-gray-100 group-hover:border-gold-500 transition-colors">

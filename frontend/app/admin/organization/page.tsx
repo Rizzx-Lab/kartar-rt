@@ -9,6 +9,8 @@ interface OrganizationMember {
   name: string;
   position: string;
   photo: string | null;
+  photo_x: number;
+  photo_y: number;
   is_active: boolean;
   order: number;
   created_at: string;
@@ -18,6 +20,8 @@ interface MemberFormData {
   name: string;
   position: string;
   photo: File | null;
+  photo_x: number;
+  photo_y: number;
   is_active: boolean;
   order: string;
 }
@@ -33,6 +37,14 @@ const getImageUrl = (path: string | null): string | null => {
   return `http://localhost:8000/storage/${path}`;
 };
 
+// Get image style with crop position for object-fit cover
+const getImageStyle = (path: string | null, x: number, y: number): React.CSSProperties => {
+  if (!path) return {};
+  return {
+    objectPosition: `${x}% ${y}%`,
+  };
+};
+
 export default function AdminOrganizationPage() {
   const [members, setMembers] = useState<OrganizationMember[]>(defaultMembers);
   const [isLoading, setIsLoading] = useState(true);
@@ -42,6 +54,8 @@ export default function AdminOrganizationPage() {
     name: '',
     position: '',
     photo: null,
+    photo_x: 50,
+    photo_y: 50,
     is_active: true,
     order: '',
   });
@@ -81,6 +95,8 @@ export default function AdminOrganizationPage() {
       name: '',
       position: '',
       photo: null,
+      photo_x: 50,
+      photo_y: 50,
       is_active: true,
       order: String(nextOrder),
     });
@@ -94,6 +110,8 @@ export default function AdminOrganizationPage() {
       name: member.name,
       position: member.position,
       photo: null,
+      photo_x: member.photo_x ?? 50,
+      photo_y: member.photo_y ?? 50,
       is_active: member.is_active,
       order: String(member.order),
     });
@@ -103,7 +121,7 @@ export default function AdminOrganizationPage() {
   const closeModal = () => {
     setShowModal(false);
     setEditingMember(null);
-    setFormData({ name: '', position: '', photo: null, is_active: true, order: '' });
+    setFormData({ name: '', position: '', photo: null, photo_x: 50, photo_y: 50, is_active: true, order: '' });
     setPreviewPhoto(null);
   };
 
@@ -128,6 +146,8 @@ export default function AdminOrganizationPage() {
     data.append('position', formData.position);
     data.append('is_active', formData.is_active ? '1' : '0');
     data.append('order', formData.order);
+    data.append('photo_x', String(formData.photo_x));
+    data.append('photo_y', String(formData.photo_y));
     if (formData.photo) {
       data.append('photo', formData.photo);
     }
@@ -267,6 +287,7 @@ export default function AdminOrganizationPage() {
                       src={getImageUrl(member.photo)!}
                       alt={member.name}
                       className="w-20 h-20 rounded-full object-cover border-2 border-gray-100"
+                      style={getImageStyle(member.photo, member.photo_x ?? 50, member.photo_y ?? 50)}
                     />
                   ) : (
                     <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center border-2 border-gray-100">
@@ -346,16 +367,23 @@ export default function AdminOrganizationPage() {
             </div>
 
             <form onSubmit={handleSubmit} className="p-6 space-y-4">
-              {/* Photo */}
+              {/* Photo with Cropper */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Foto</label>
-                <div className="flex items-center gap-4">
+
+                {/* Upload Area */}
+                <div className="flex items-center gap-4 mb-4">
                   <div
                     onClick={() => fileInputRef.current?.click()}
                     className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center cursor-pointer hover:bg-gray-200 transition-colors overflow-hidden border-2 border-dashed border-gray-300"
                   >
                     {previewPhoto ? (
-                      <img src={previewPhoto} alt="Preview" className="w-full h-full object-cover" />
+                      <img
+                        src={previewPhoto}
+                        alt="Preview"
+                        className="w-full h-full object-cover"
+                        style={{ objectPosition: `${formData.photo_x}% ${formData.photo_y}%` }}
+                      />
                     ) : (
                       <Upload className="w-6 h-6 text-gray-400" />
                     )}
@@ -369,9 +397,135 @@ export default function AdminOrganizationPage() {
                   />
                   <div className="text-sm text-gray-500">
                     <p>Klik untuk upload foto</p>
-                    <p className="text-xs mt-1">Format: JPG, PNG (maks. 2MB)</p>
+                    <p className="text-xs mt-1">Format: JPG, PNG (maks. 10MB)</p>
                   </div>
                 </div>
+
+                {/* Cropper Area - shown when photo is uploaded */}
+                {previewPhoto && (
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <p className="text-xs text-gray-500 mb-3 text-center">
+                      Geser foto di dalam lingkaran untuk mengatur area crop
+                    </p>
+
+                    {/* Interactive Cropper */}
+                    <div className="relative mx-auto mb-4" style={{ width: '200px', height: '200px' }}>
+                      {/* Background dimmed area */}
+                      <div className="absolute inset-0 rounded-full bg-black/40" />
+
+                      {/* Image container with drag */}
+                      <div
+                        className="absolute inset-0 overflow-hidden rounded-full cursor-move"
+                        style={{
+                          clipPath: 'circle(80px at center)',
+                          background: '#e5e7eb',
+                        }}
+                        onMouseDown={(e) => {
+                          const container = e.currentTarget;
+                          const rect = container.getBoundingClientRect();
+                          const centerX = rect.width / 2;
+                          const centerY = rect.height / 2;
+
+                          const handleMouseMove = (moveEvent: MouseEvent) => {
+                            const deltaX = moveEvent.clientX - e.clientX;
+                            const deltaY = moveEvent.clientY - e.clientY;
+
+                            // Calculate new position
+                            let newX = formData.photo_x + (deltaX / 80) * 12.5;
+                            let newY = formData.photo_y + (deltaY / 80) * 12.5;
+
+                            // Clamp between 0 and 100
+                            newX = Math.max(0, Math.min(100, newX));
+                            newY = Math.max(0, Math.min(100, newY));
+
+                            setFormData({ ...formData, photo_x: newX, photo_y: newY });
+                          };
+
+                          const handleMouseUp = () => {
+                            document.removeEventListener('mousemove', handleMouseMove);
+                            document.removeEventListener('mouseup', handleMouseUp);
+                          };
+
+                          document.addEventListener('mousemove', handleMouseMove);
+                          document.addEventListener('mouseup', handleMouseUp);
+                        }}
+                        onTouchMove={(e) => {
+                          e.preventDefault();
+                          const touch = e.touches[0];
+                          const container = e.currentTarget;
+                          const rect = container.getBoundingClientRect();
+
+                          const newX = ((touch.clientX - rect.left) / rect.width) * 100;
+                          const newY = ((touch.clientY - rect.top) / rect.height) * 100;
+
+                          setFormData({
+                            ...formData,
+                            photo_x: Math.max(0, Math.min(100, newX)),
+                            photo_y: Math.max(0, Math.min(100, newY)),
+                          });
+                        }}
+                      >
+                        <img
+                          src={previewPhoto}
+                          alt="Crop preview"
+                          className="w-full h-full"
+                          style={{
+                            objectFit: 'cover',
+                            objectPosition: `${formData.photo_x}% ${formData.photo_y}%`,
+                            width: '200px',
+                            height: '200px',
+                          }}
+                          draggable={false}
+                        />
+                      </div>
+
+                      {/* Center crosshair */}
+                      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none">
+                        <div className="w-4 h-4 flex items-center justify-center">
+                          <div className="w-full h-0.5 bg-white/60" />
+                          <div className="absolute w-0.5 h-full bg-white/60" />
+                        </div>
+                      </div>
+
+                      {/* Circle border */}
+                      <div className="absolute inset-0 rounded-full border-2 border-white/50 pointer-events-none" />
+                    </div>
+
+                    {/* Position indicators */}
+                    <div className="flex justify-center gap-4 text-xs text-gray-400">
+                      <span>X: {Math.round(formData.photo_x)}%</span>
+                      <span>Y: {Math.round(formData.photo_y)}%</span>
+                    </div>
+
+                    {/* Reset button */}
+                    <div className="flex justify-center mt-2">
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, photo_x: 50, photo_y: 50 })}
+                        className="text-xs text-gold-600 hover:text-gold-700 font-medium"
+                      >
+                        Reset ke tengah
+                      </button>
+                    </div>
+
+                    {/* Preview */}
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                      <p className="text-xs text-gray-500 mb-2 text-center">Preview Tampilan</p>
+                      <div className="flex justify-center">
+                        <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-gold-500">
+                          <img
+                            src={previewPhoto}
+                            alt="Avatar preview"
+                            className="w-full h-full object-cover"
+                            style={{
+                              objectPosition: `${formData.photo_x}% ${formData.photo_y}%`,
+                            }}
+                          />
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Name */}

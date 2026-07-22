@@ -908,7 +908,9 @@ class AdminApiController extends Controller
         $data = $request->validate([
             'name' => 'required|string|max:100',
             'position' => 'required|string|max:100',
-            'photo' => 'nullable|image|max:2048',
+            'photo' => 'nullable|image|max:10240',
+            'photo_x' => 'nullable|numeric|min:0|max:100',
+            'photo_y' => 'nullable|numeric|min:0|max:100',
             'order' => 'nullable|integer',
         ]);
 
@@ -918,6 +920,10 @@ class AdminApiController extends Controller
 
         // Handle is_active separately (FormData sends strings "true"/"false")
         $data['is_active'] = filter_var($request->input('is_active'), FILTER_VALIDATE_BOOLEAN) ?: true;
+
+        // Default crop position to center (50, 50) if not provided
+        $data['photo_x'] = $data['photo_x'] ?? 50;
+        $data['photo_y'] = $data['photo_y'] ?? 50;
 
         $member = OrganizationMember::create($data);
 
@@ -934,7 +940,9 @@ class AdminApiController extends Controller
         $data = $request->validate([
             'name' => 'required|string|max:100',
             'position' => 'required|string|max:100',
-            'photo' => 'nullable|image|max:2048',
+            'photo' => 'nullable|image|max:10240',
+            'photo_x' => 'nullable|numeric|min:0|max:100',
+            'photo_y' => 'nullable|numeric|min:0|max:100',
             'order' => 'nullable|integer',
         ]);
 
@@ -951,6 +959,14 @@ class AdminApiController extends Controller
 
         // Handle is_active separately (FormData sends strings "true"/"false")
         $data['is_active'] = filter_var($request->input('is_active'), FILTER_VALIDATE_BOOLEAN) ?? $member->is_active;
+
+        // Keep existing crop position if not provided
+        if (!isset($data['photo_x'])) {
+            $data['photo_x'] = $member->photo_x ?? 50;
+        }
+        if (!isset($data['photo_y'])) {
+            $data['photo_y'] = $member->photo_y ?? 50;
+        }
 
         $member->update($data);
 
