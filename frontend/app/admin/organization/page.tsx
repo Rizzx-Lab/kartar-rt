@@ -11,6 +11,7 @@ interface OrganizationMember {
   photo: string | null;
   photo_x: number;
   photo_y: number;
+  photo_scale: number;
   is_active: boolean;
   order: number;
   created_at: string;
@@ -22,6 +23,7 @@ interface MemberFormData {
   photo: File | null;
   photo_x: number;
   photo_y: number;
+  photo_scale: number;
   is_active: boolean;
   order: string;
 }
@@ -38,10 +40,11 @@ const getImageUrl = (path: string | null): string | null => {
 };
 
 // Get image style with crop position for object-fit cover
-const getImageStyle = (path: string | null, x: number, y: number): React.CSSProperties => {
+const getImageStyle = (path: string | null, x: number, y: number, scale: number): React.CSSProperties => {
   if (!path) return {};
   return {
     objectPosition: `${x}% ${y}%`,
+    transform: `scale(${scale})`,
   };
 };
 
@@ -56,6 +59,7 @@ export default function AdminOrganizationPage() {
     photo: null,
     photo_x: 50,
     photo_y: 50,
+    photo_scale: 1,
     is_active: true,
     order: '',
   });
@@ -97,6 +101,7 @@ export default function AdminOrganizationPage() {
       photo: null,
       photo_x: 50,
       photo_y: 50,
+      photo_scale: 1,
       is_active: true,
       order: String(nextOrder),
     });
@@ -112,6 +117,7 @@ export default function AdminOrganizationPage() {
       photo: null,
       photo_x: member.photo_x ?? 50,
       photo_y: member.photo_y ?? 50,
+      photo_scale: member.photo_scale ?? 1,
       is_active: member.is_active,
       order: String(member.order),
     });
@@ -121,7 +127,7 @@ export default function AdminOrganizationPage() {
   const closeModal = () => {
     setShowModal(false);
     setEditingMember(null);
-    setFormData({ name: '', position: '', photo: null, photo_x: 50, photo_y: 50, is_active: true, order: '' });
+    setFormData({ name: '', position: '', photo: null, photo_x: 50, photo_y: 50, photo_scale: 1, is_active: true, order: '' });
     setPreviewPhoto(null);
   };
 
@@ -148,6 +154,7 @@ export default function AdminOrganizationPage() {
     data.append('order', formData.order);
     data.append('photo_x', String(formData.photo_x));
     data.append('photo_y', String(formData.photo_y));
+    data.append('photo_scale', String(formData.photo_scale));
     if (formData.photo) {
       data.append('photo', formData.photo);
     }
@@ -287,7 +294,7 @@ export default function AdminOrganizationPage() {
                       src={getImageUrl(member.photo)!}
                       alt={member.name}
                       className="w-20 h-20 rounded-full object-cover border-2 border-gray-100"
-                      style={getImageStyle(member.photo, member.photo_x ?? 50, member.photo_y ?? 50)}
+                      style={getImageStyle(member.photo, member.photo_x ?? 50, member.photo_y ?? 50, member.photo_scale ?? 1)}
                     />
                   ) : (
                     <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center border-2 border-gray-100">
@@ -472,6 +479,8 @@ export default function AdminOrganizationPage() {
                           style={{
                             objectFit: 'cover',
                             objectPosition: `${formData.photo_x}% ${formData.photo_y}%`,
+                            transform: `scale(${formData.photo_scale})`,
+                            transformOrigin: 'center',
                             width: '200px',
                             height: '200px',
                           }}
@@ -491,20 +500,49 @@ export default function AdminOrganizationPage() {
                       <div className="absolute inset-0 rounded-full border-2 border-white/50 pointer-events-none" />
                     </div>
 
+                    {/* Zoom Slider */}
+                    <div className="mb-4">
+                      <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
+                        <span>Zoom</span>
+                        <span>{formData.photo_scale.toFixed(1)}x</span>
+                      </div>
+                      <input
+                        type="range"
+                        min="0.5"
+                        max="2"
+                        step="0.1"
+                        value={formData.photo_scale}
+                        onChange={(e) => setFormData({ ...formData, photo_scale: parseFloat(e.target.value) })}
+                        className="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer accent-gold-500"
+                      />
+                      <div className="flex justify-between text-xs text-gray-400 mt-1">
+                        <span>0.5x</span>
+                        <span>2x</span>
+                      </div>
+                    </div>
+
                     {/* Position indicators */}
-                    <div className="flex justify-center gap-4 text-xs text-gray-400">
+                    <div className="flex justify-center gap-4 text-xs text-gray-400 mb-2">
                       <span>X: {Math.round(formData.photo_x)}%</span>
                       <span>Y: {Math.round(formData.photo_y)}%</span>
                     </div>
 
-                    {/* Reset button */}
-                    <div className="flex justify-center mt-2">
+                    {/* Reset buttons */}
+                    <div className="flex justify-center gap-3">
                       <button
                         type="button"
                         onClick={() => setFormData({ ...formData, photo_x: 50, photo_y: 50 })}
                         className="text-xs text-gold-600 hover:text-gold-700 font-medium"
                       >
-                        Reset ke tengah
+                        Reset Posisi
+                      </button>
+                      <span className="text-gray-300">|</span>
+                      <button
+                        type="button"
+                        onClick={() => setFormData({ ...formData, photo_scale: 1 })}
+                        className="text-xs text-gold-600 hover:text-gold-700 font-medium"
+                      >
+                        Reset Zoom
                       </button>
                     </div>
 
@@ -519,6 +557,8 @@ export default function AdminOrganizationPage() {
                             className="w-full h-full object-cover"
                             style={{
                               objectPosition: `${formData.photo_x}% ${formData.photo_y}%`,
+                              transform: `scale(${formData.photo_scale})`,
+                              transformOrigin: 'center',
                             }}
                           />
                         </div>

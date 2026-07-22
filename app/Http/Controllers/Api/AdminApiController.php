@@ -911,6 +911,7 @@ class AdminApiController extends Controller
             'photo' => 'nullable|image|max:10240',
             'photo_x' => 'nullable|numeric|min:0|max:100',
             'photo_y' => 'nullable|numeric|min:0|max:100',
+            'photo_scale' => 'nullable|numeric|min:0.5|max:3',
             'order' => 'nullable|integer',
         ]);
 
@@ -921,9 +922,10 @@ class AdminApiController extends Controller
         // Handle is_active separately (FormData sends strings "true"/"false")
         $data['is_active'] = filter_var($request->input('is_active'), FILTER_VALIDATE_BOOLEAN) ?: true;
 
-        // Default crop position to center (50, 50) if not provided
+        // Default crop position and scale if not provided
         $data['photo_x'] = $data['photo_x'] ?? 50;
         $data['photo_y'] = $data['photo_y'] ?? 50;
+        $data['photo_scale'] = $data['photo_scale'] ?? 1.0;
 
         $member = OrganizationMember::create($data);
 
@@ -943,6 +945,7 @@ class AdminApiController extends Controller
             'photo' => 'nullable|image|max:10240',
             'photo_x' => 'nullable|numeric|min:0|max:100',
             'photo_y' => 'nullable|numeric|min:0|max:100',
+            'photo_scale' => 'nullable|numeric|min:0.5|max:3',
             'order' => 'nullable|integer',
         ]);
 
@@ -960,12 +963,15 @@ class AdminApiController extends Controller
         // Handle is_active separately (FormData sends strings "true"/"false")
         $data['is_active'] = filter_var($request->input('is_active'), FILTER_VALIDATE_BOOLEAN) ?? $member->is_active;
 
-        // Keep existing crop position if not provided
+        // Keep existing crop settings if not provided
         if (!isset($data['photo_x'])) {
             $data['photo_x'] = $member->photo_x ?? 50;
         }
         if (!isset($data['photo_y'])) {
             $data['photo_y'] = $member->photo_y ?? 50;
+        }
+        if (!isset($data['photo_scale'])) {
+            $data['photo_scale'] = $member->photo_scale ?? 1.0;
         }
 
         $member->update($data);
