@@ -124,7 +124,7 @@ function AnimatedGalleryGrid({
     <>
       {/* ===================== DESKTOP LAYOUT (lg+) ===================== */}
       {/* Side-by-side columns: video + photo columns */}
-      <div className="hidden lg:flex justify-center items-start gap-4 px-4 lg:px-8 max-w-6xl mx-auto">
+      <div className="hidden lg:flex justify-center items-stretch gap-4 px-4 lg:px-8 max-w-6xl mx-auto">
         {/* Left photo column */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
@@ -156,11 +156,8 @@ function AnimatedGalleryGrid({
             transition={{ duration: 0.5, delay: 0.2 }}
             className="w-72 shrink-0 overflow-hidden"
           >
-            {/* Video Container - Fixed max height */}
-            <div
-              className="relative bg-black/5 rounded-xl overflow-hidden"
-              style={{ maxHeight: '70vh' }}
-            >
+            {/* Video Container - Centered vertically with fixed max height */}
+            <div className="flex items-center justify-center min-h-[400px] max-h-[60vh] bg-gray-50 rounded-xl">
               <video
                 src={featuredVideo.video_url ?? undefined}
                 autoPlay
@@ -169,7 +166,7 @@ function AnimatedGalleryGrid({
                 playsInline
                 loop
                 preload="metadata"
-                className="w-full h-auto max-h-[70vh] object-contain rounded-xl"
+                className="max-w-full max-h-[60vh] w-auto h-auto object-contain rounded-xl"
                 title={featuredVideo.title}
               />
             </div>
