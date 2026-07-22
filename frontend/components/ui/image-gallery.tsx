@@ -124,14 +124,14 @@ function AnimatedGalleryGrid({
     <>
       {/* ===================== DESKTOP LAYOUT (lg+) ===================== */}
       {/* Side-by-side columns: video + photo columns */}
-      <div className="hidden lg:flex justify-center gap-4 px-4 lg:px-8">
+      <div className="hidden lg:flex justify-center items-start gap-4 px-4 lg:px-8 max-w-6xl mx-auto">
         {/* Left photo column */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="w-80 shrink-0 overflow-hidden"
+          className="w-72 shrink-0 overflow-hidden"
         >
           <div
             className={`flex flex-col gap-4 ${shouldAutoScroll ? normalClass : ''}`}
@@ -154,9 +154,13 @@ function AnimatedGalleryGrid({
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="w-80 shrink-0 overflow-hidden rounded-xl bg-black/5"
+            className="w-72 shrink-0 overflow-hidden"
           >
-            <div className="relative w-full" style={{ aspectRatio: '9/16' }}>
+            {/* Video Container - Fixed max height */}
+            <div
+              className="relative bg-black/5 rounded-xl overflow-hidden"
+              style={{ maxHeight: '70vh' }}
+            >
               <video
                 src={featuredVideo.video_url ?? undefined}
                 autoPlay
@@ -165,12 +169,12 @@ function AnimatedGalleryGrid({
                 playsInline
                 loop
                 preload="metadata"
-                className="absolute inset-0 w-full h-full object-cover rounded-xl"
+                className="w-full h-auto max-h-[70vh] object-contain rounded-xl"
                 title={featuredVideo.title}
               />
             </div>
             {featuredVideo.title && (
-              <div className="mt-2 px-1">
+              <div className="mt-3 px-1">
                 <p className="text-sm font-medium text-navy-800 truncate">{featuredVideo.title}</p>
                 <p className="text-xs text-gray-400 mt-0.5">
                   {Math.floor(featuredVideo.duration / 60)}:{String(featuredVideo.duration % 60).padStart(2, '0')} · Featured Video
@@ -184,7 +188,7 @@ function AnimatedGalleryGrid({
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="w-80 shrink-0 overflow-hidden"
+            className="w-72 shrink-0 overflow-hidden"
           >
             <div
               className={`flex flex-col gap-4 ${shouldAutoScroll ? slowClass : ''}`}
@@ -208,7 +212,7 @@ function AnimatedGalleryGrid({
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.3 }}
-            className="w-80 shrink-0 overflow-hidden"
+            className="w-72 shrink-0 overflow-hidden"
           >
             <div
               className={`flex flex-col gap-4 ${shouldAutoScroll ? slowClass : ''}`}
@@ -230,7 +234,7 @@ function AnimatedGalleryGrid({
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.3 }}
-            className="w-80 shrink-0 overflow-hidden"
+            className="w-72 shrink-0 overflow-hidden"
           >
             <div
               className={`flex flex-col gap-4 ${shouldAutoScroll ? mediumClass : ''}`}
