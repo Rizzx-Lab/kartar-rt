@@ -115,7 +115,7 @@ function AnimatedGalleryGrid({
     setShowLightbox(true);
   };
 
-  const videoScrollSpeed = Math.max(20, Math.min(scrollSpeed, 60));
+  const scrollDuration = Math.max(20, Math.min(scrollSpeed, 60));
   const slowClass = 'animate-scroll-gallery-up-slow';
   const normalClass = 'animate-scroll-gallery-up';
   const mediumClass = 'animate-scroll-gallery-up-medium';
@@ -146,7 +146,7 @@ function AnimatedGalleryGrid({
         >
           <div
             className={`flex flex-col gap-4 ${shouldAutoScroll ? normalClass : ''}`}
-            style={shouldAutoScroll ? { '--scroll-duration': `${videoScrollSpeed}s` } as React.CSSProperties : undefined}
+            style={shouldAutoScroll ? { animationDuration: `${scrollDuration}s` } : undefined}
           >
             {[...column1, ...column1].map((photo, idx) => (
               <AnimatedGalleryItem
@@ -200,6 +200,7 @@ function AnimatedGalleryGrid({
           >
             <div
               className={`flex flex-col gap-4 ${shouldAutoScroll ? slowClass : ''}`}
+              style={shouldAutoScroll ? { animationDuration: `${scrollDuration}s` } : undefined}
             >
               {[...column2, ...column2].map((photo, idx) => (
                 <AnimatedGalleryItem
@@ -223,7 +224,7 @@ function AnimatedGalleryGrid({
           >
             <div
               className={`flex flex-col gap-4 ${shouldAutoScroll ? slowClass : ''}`}
-              style={shouldAutoScroll ? { '--scroll-duration': `${videoScrollSpeed}s` } as React.CSSProperties : undefined}
+              style={shouldAutoScroll ? { animationDuration: `${scrollDuration}s` } : undefined}
             >
               {[...column1, ...column1].map((photo, idx) => (
                 <AnimatedGalleryItem
@@ -245,6 +246,7 @@ function AnimatedGalleryGrid({
           >
             <div
               className={`flex flex-col gap-4 ${shouldAutoScroll ? mediumClass : ''}`}
+              style={shouldAutoScroll ? { animationDuration: `${scrollDuration}s` } : undefined}
             >
               {[...column3, ...column3].map((photo, idx) => (
                 <AnimatedGalleryItem

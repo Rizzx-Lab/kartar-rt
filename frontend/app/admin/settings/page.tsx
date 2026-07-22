@@ -489,7 +489,7 @@ export default function AdminSettingsPage() {
                 <div className="flex items-center justify-between mb-3">
                   <div>
                     <p className="font-medium text-gray-800">Kecepatan Scroll Galeri</p>
-                    <p className="text-xs text-gray-500 mt-1">Dalam detik (30 = normal, 60 = lambat, 15 = cepat)</p>
+                    <p className="text-xs text-gray-500 mt-1">Dalam detik (20 = cepat, 30 = normal, 60 = lambat)</p>
                   </div>
                 </div>
                 <div className="flex items-center gap-4">
