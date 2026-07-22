@@ -122,27 +122,16 @@ function AnimatedGalleryGrid({
 
   return (
     <>
-      <motion.div
-        initial={{ opacity: 0 }}
-        whileInView={{ opacity: 1 }}
-        viewport={{ once: true }}
-        transition={{ duration: 0.6 }}
-        className={`flex justify-center gap-4 px-4 sm:px-6 lg:px-8 ${hasVideo ? '' : ''}`}
-        style={
-          hasVideo
-            ? { maxHeight: '620px', WebkitMaskImage: 'linear-gradient(to bottom, transparent, black 8%, black 92%, transparent)', maskImage: 'linear-gradient(to bottom, transparent, black 8%, black 92%, transparent)' }
-            : { maxHeight: '600px', WebkitMaskImage: 'linear-gradient(to bottom, transparent, black 10%, black 90%, transparent)', maskImage: 'linear-gradient(to bottom, transparent, black 10%, black 90%, transparent)' }
-        }
-      >
-        {/* Left photo column — hidden on mobile when video exists, visible otherwise */}
+      {/* ===================== DESKTOP LAYOUT (lg+) ===================== */}
+      {/* Side-by-side columns: video + photo columns */}
+      <div className="hidden lg:flex justify-center gap-4 px-4 lg:px-8">
+        {/* Left photo column */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className={`shrink-0 overflow-hidden ${hasVideo ? 'hidden md:block w-full sm:w-72 md:w-80' : 'w-full sm:w-72 md:w-80'}`}
-          onMouseEnter={() => setIsHovered(true)}
-          onMouseLeave={() => setIsHovered(false)}
+          className="w-80 shrink-0 overflow-hidden"
         >
           <div
             className={`flex flex-col gap-4 ${shouldAutoScroll ? normalClass : ''}`}
@@ -158,17 +147,15 @@ function AnimatedGalleryGrid({
           </div>
         </motion.div>
 
-        {/* Center: pinned video (when active) or photo column 2 (when no video) */}
+        {/* Center: video or photo column 2 */}
         {hasVideo ? (
-          /* Video always visible — full width on mobile, sm:w-72 md:w-80 on larger */
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="w-full sm:w-72 md:w-80 shrink-0 overflow-hidden rounded-xl bg-black/5"
+            className="w-80 shrink-0 overflow-hidden rounded-xl bg-black/5"
           >
-            {/* Video — pinned, non-scrolling */}
             <div className="relative w-full" style={{ aspectRatio: '9/16' }}>
               <video
                 src={featuredVideo.video_url ?? undefined}
@@ -197,7 +184,7 @@ function AnimatedGalleryGrid({
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="hidden sm:block w-full sm:w-72 md:w-80 shrink-0 overflow-hidden"
+            className="w-80 shrink-0 overflow-hidden"
           >
             <div
               className={`flex flex-col gap-4 ${shouldAutoScroll ? slowClass : ''}`}
@@ -221,7 +208,7 @@ function AnimatedGalleryGrid({
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.3 }}
-            className="hidden lg:block w-full sm:w-72 md:w-80 shrink-0 overflow-hidden"
+            className="w-80 shrink-0 overflow-hidden"
           >
             <div
               className={`flex flex-col gap-4 ${shouldAutoScroll ? slowClass : ''}`}
@@ -243,7 +230,7 @@ function AnimatedGalleryGrid({
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.3 }}
-            className="hidden md:block w-full sm:w-72 md:w-80 shrink-0 overflow-hidden"
+            className="w-80 shrink-0 overflow-hidden"
           >
             <div
               className={`flex flex-col gap-4 ${shouldAutoScroll ? mediumClass : ''}`}
@@ -260,7 +247,107 @@ function AnimatedGalleryGrid({
             </div>
           </motion.div>
         )}
-      </motion.div>
+      </div>
+
+      {/* ===================== MOBILE LAYOUT (< lg) ===================== */}
+      {/* Video pinned at top (full width), scrolling photos below it */}
+      <div className="lg:hidden flex flex-col items-center gap-6 px-4">
+        {/* Video — always on top, full width */}
+        {hasVideo && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            whileInView={{ opacity: 1, scale: 1 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.5 }}
+            className="w-full max-w-sm shrink-0 overflow-hidden rounded-xl bg-black/5"
+          >
+            <div className="relative w-full" style={{ aspectRatio: '9/16' }}>
+              <video
+                src={featuredVideo.video_url ?? undefined}
+                autoPlay
+                controls
+                muted
+                playsInline
+                loop
+                preload="metadata"
+                className="absolute inset-0 w-full h-full object-cover rounded-xl"
+                title={featuredVideo.title}
+              />
+            </div>
+            {featuredVideo.title && (
+              <div className="mt-2 px-1">
+                <p className="text-sm font-medium text-navy-800 truncate">{featuredVideo.title}</p>
+                <p className="text-xs text-gray-400 mt-0.5">
+                  {Math.floor(featuredVideo.duration / 60)}:{String(featuredVideo.duration % 60).padStart(2, '0')} · Featured Video
+                </p>
+              </div>
+            )}
+          </motion.div>
+        )}
+
+        {/* Scrolling photo gallery — below video on mobile */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6 }}
+          className="w-full flex justify-center"
+          style={{
+            maxHeight: '500px',
+            WebkitMaskImage: 'linear-gradient(to bottom, transparent, black 5%, black 95%, transparent)',
+            maskImage: 'linear-gradient(to bottom, transparent, black 5%, black 95%, transparent)',
+          }}
+        >
+          <div
+            className={`w-full max-w-sm shrink-0 overflow-hidden ${shouldAutoScroll ? normalClass : ''}`}
+            style={shouldAutoScroll ? { animationDuration: `${scrollDuration}s` } : undefined}
+          >
+            {[...photos, ...photos].map((photo, idx) => (
+              <div key={`mobile-${photo.id}-${idx}`} className="mb-4">
+                <AnimatedGalleryItem
+                  photo={photo}
+                  onClick={() => handlePhotoClick(photo)}
+                />
+              </div>
+            ))}
+          </div>
+        </motion.div>
+      </div>
+
+      {/* ===================== NON-VIDEO MOBILE (< lg) ===================== */}
+      {/* Photo-only mobile layout: 2 columns side by side */}
+      {!hasVideo && (
+        <div className="lg:hidden flex justify-center gap-3 px-4">
+          {/* Column 1 */}
+          <div
+            className={`w-1/2 shrink-0 overflow-hidden ${shouldAutoScroll ? normalClass : ''}`}
+            style={shouldAutoScroll ? { animationDuration: `${scrollDuration}s` } : undefined}
+          >
+            {[...column1, ...column1].map((photo, idx) => (
+              <div key={`m-col1-${photo.id}-${idx}`} className="mb-3">
+                <AnimatedGalleryItem
+                  photo={photo}
+                  onClick={() => handlePhotoClick(photo)}
+                />
+              </div>
+            ))}
+          </div>
+          {/* Column 2 */}
+          <div
+            className={`w-1/2 shrink-0 overflow-hidden ${shouldAutoScroll ? slowClass : ''}`}
+            style={shouldAutoScroll ? { animationDuration: `${scrollDuration}s` } : undefined}
+          >
+            {[...column2, ...column2].map((photo, idx) => (
+              <div key={`m-col2-${photo.id}-${idx}`} className="mb-3">
+                <AnimatedGalleryItem
+                  photo={photo}
+                  onClick={() => handlePhotoClick(photo)}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Lightbox Modal */}
       <AnimatePresence>
