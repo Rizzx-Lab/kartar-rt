@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { getUsers, createUser, updateUser, deleteUser, resetUserPwa } from '@/lib/admin-api';
 import { useAuth } from '@/contexts/AuthContext';
+import { ConfirmModal } from '@/components/ui/confirm-modal';
 
 interface User {
   id: number;
@@ -30,6 +31,12 @@ export default function AdminUsersPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [errors, setErrors] = useState<Partial<UserFormData>>({});
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; type: 'delete' | 'resetPwa'; id: number | null; name: string }>({
+    isOpen: false,
+    type: 'delete',
+    id: null,
+    name: '',
+  });
 
   useEffect(() => {
     fetchUsers();
@@ -100,28 +107,26 @@ export default function AdminUsersPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (confirm('Yakin ingin menghapus user ini? Aksi ini tidak dapat dibatalkan.')) {
-      const response = await deleteUser(id);
-      if (response.success) {
-        fetchUsers();
-      } else {
-        setToast({ message: response.message || 'Gagal menghapus user.', type: 'error' });
-        setTimeout(() => setToast(null), 5000);
-      }
+    const response = await deleteUser(id);
+    if (response.success) {
+      fetchUsers();
+    } else {
+      setToast({ message: response.message || 'Gagal menghapus user.', type: 'error' });
+      setTimeout(() => setToast(null), 5000);
     }
+    setDeleteModal({ isOpen: false, type: 'delete', id: null, name: '' });
   };
 
   const handleResetPwa = async (userId: number, userName: string) => {
-    if (confirm(`Reset status PWA untuk ${userName}?`)) {
-      const success = await resetUserPwa(userId);
-      if (success) {
-        setToast({ message: `Status PWA ${userName} berhasil direset.`, type: 'success' });
-        setTimeout(() => setToast(null), 3000);
-      } else {
-        setToast({ message: `Gagal mereset status PWA untuk ${userName}.`, type: 'error' });
-        setTimeout(() => setToast(null), 3000);
-      }
+    const success = await resetUserPwa(userId);
+    if (success) {
+      setToast({ message: `Status PWA ${userName} berhasil direset.`, type: 'success' });
+      setTimeout(() => setToast(null), 3000);
+    } else {
+      setToast({ message: `Gagal mereset status PWA untuk ${userName}.`, type: 'error' });
+      setTimeout(() => setToast(null), 3000);
     }
+    setDeleteModal({ isOpen: false, type: 'resetPwa', id: null, name: '' });
   };
 
   const filtered = users.filter(u =>
@@ -210,7 +215,7 @@ export default function AdminUsersPage() {
                       </svg>
                     </button>
                     <button
-                      onClick={() => handleDelete(user.id)}
+                      onClick={() => setDeleteModal({ isOpen: true, type: 'delete', id: user.id, name: user.name })}
                       className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                       title="Hapus user"
                     >
@@ -220,7 +225,7 @@ export default function AdminUsersPage() {
                     </button>
                     {user?.role === 'super_admin' && (
                       <button
-                        onClick={() => handleResetPwa(user.id, user.name)}
+                        onClick={() => setDeleteModal({ isOpen: true, type: 'resetPwa', id: user.id, name: user.name })}
                         className="p-2 text-purple-500 hover:bg-purple-50 rounded-lg transition-colors"
                         title="Reset PWA"
                       >
@@ -284,7 +289,7 @@ export default function AdminUsersPage() {
                         </svg>
                       </button>
                       <button
-                        onClick={() => handleDelete(user.id)}
+                        onClick={() => setDeleteModal({ isOpen: true, type: 'delete', id: user.id, name: user.name })}
                         className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                         title="Hapus user"
                       >
@@ -294,7 +299,7 @@ export default function AdminUsersPage() {
                       </button>
                       {user?.role === 'super_admin' && (
                         <button
-                          onClick={() => handleResetPwa(user.id, user.name)}
+                          onClick={() => setDeleteModal({ isOpen: true, type: 'resetPwa', id: user.id, name: user.name })}
                           className="p-2 text-purple-500 hover:bg-purple-50 rounded-lg transition-colors"
                           title="Reset PWA"
                         >
@@ -440,6 +445,27 @@ export default function AdminUsersPage() {
           <span className="text-sm font-medium">{toast.message}</span>
         </div>
       )}
+
+      {/* Delete/Reset Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteModal.isOpen}
+        title={deleteModal.type === 'delete' ? 'Hapus User' : 'Reset PWA'}
+        message={
+          deleteModal.type === 'delete'
+            ? `Yakin ingin menghapus user "${deleteModal.name}"? Aksi ini tidak dapat dibatalkan.`
+            : `Reset status PWA untuk "${deleteModal.name}"?`
+        }
+        confirmText={deleteModal.type === 'delete' ? 'Hapus' : 'Reset'}
+        onConfirm={() => {
+          if (deleteModal.type === 'resetPwa' && deleteModal.id) {
+            handleResetPwa(deleteModal.id, deleteModal.name);
+          } else if (deleteModal.id) {
+            handleDelete(deleteModal.id);
+          }
+        }}
+        onCancel={() => setDeleteModal({ isOpen: false, type: 'delete', id: null, name: '' })}
+        danger={deleteModal.type === 'delete'}
+      />
     </div>
   );
 }

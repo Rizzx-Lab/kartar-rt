@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { getAnnouncements, createAnnouncement, updateAnnouncement, deleteAnnouncement } from '@/lib/admin-api';
 import { X, Image as ImageIcon } from 'lucide-react';
+import { ConfirmModal } from '@/components/ui/confirm-modal';
 
 interface Announcement {
   id: number;
@@ -50,6 +51,10 @@ export default function AdminAnnouncementsPage() {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [removeImage, setRemoveImage] = useState(false);
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; id: number | null }>({
+    isOpen: false,
+    id: null,
+  });
 
   useEffect(() => {
     fetchAnnouncements();
@@ -150,13 +155,12 @@ export default function AdminAnnouncementsPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (confirm('Yakin ingin menghapus pengumuman ini?')) {
-      const response = await deleteAnnouncement(id);
-      if (response.success) {
-        fetchAnnouncements();
-      } else {
-        alert(response.message || 'Gagal menghapus');
-      }
+    setDeleteModal({ isOpen: false, id: null });
+    const response = await deleteAnnouncement(id);
+    if (response.success) {
+      fetchAnnouncements();
+    } else {
+      alert(response.message || 'Gagal menghapus');
     }
   };
 
@@ -273,7 +277,7 @@ export default function AdminAnnouncementsPage() {
                           Edit
                         </button>
                         <button
-                          onClick={() => handleDelete(announcement.id)}
+                          onClick={() => setDeleteModal({ isOpen: true, id: announcement.id })}
                           className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
                         >
                           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -494,6 +498,17 @@ export default function AdminAnnouncementsPage() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteModal.isOpen}
+        title="Hapus Pengumuman"
+        message="Yakin ingin menghapus pengumuman ini? Aksi ini tidak dapat dibatalkan."
+        confirmText="Hapus"
+        onConfirm={() => deleteModal.id && handleDelete(deleteModal.id)}
+        onCancel={() => setDeleteModal({ isOpen: false, id: null })}
+        danger
+      />
     </div>
   );
 }

@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { getPrograms, createProgram, updateProgram, deleteProgram, getProgramSessions, createSession, updateSession, deleteSession } from '@/lib/admin-api';
 import { Calendar, X, Edit2, Trash2, Plus, ArrowRight } from 'lucide-react';
+import { ConfirmModal } from '@/components/ui/confirm-modal';
 
 interface Program {
   id: number;
@@ -86,6 +87,12 @@ export default function AdminProgramsPage() {
   });
   const [isSubmittingSession, setIsSubmittingSession] = useState(false);
   const [publishAsAnnouncement, setPublishAsAnnouncement] = useState(false);
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; type: 'program' | 'session'; id: number | null; title: string }>({
+    isOpen: false,
+    type: 'program',
+    id: null,
+    title: '',
+  });
 
   const hasFetched = useRef(false);
 
@@ -159,14 +166,13 @@ export default function AdminProgramsPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (confirm('Yakin ingin menghapus program ini?')) {
-      const response = await deleteProgram(id);
-      if (response.success) {
-        fetchPrograms();
-      } else {
-        alert(response.message || 'Gagal menghapus');
-      }
+    const response = await deleteProgram(id);
+    if (response.success) {
+      fetchPrograms();
+    } else {
+      alert(response.message || 'Gagal menghapus');
     }
+    setDeleteModal({ isOpen: false, type: 'program', id: null, title: '' });
   };
 
   // Session management functions
@@ -252,18 +258,17 @@ export default function AdminProgramsPage() {
 
   const handleDeleteSession = async (sessionId: number) => {
     if (!selectedProgram) return;
-    if (confirm('Yakin ingin menghapus sesi ini?')) {
-      const response = await deleteSession(selectedProgram.id, sessionId);
-      if (response.success) {
-        setSessions(sessions.filter(s => s.id !== sessionId));
-        // Reset form ke mode tambah jika sesi yang dihapus sedang diedit
-        if (editingSession && editingSession.id === sessionId) {
-          resetSessionForm();
-        }
-      } else {
-        alert(response.message || 'Gagal menghapus sesi');
+    const response = await deleteSession(selectedProgram.id, sessionId);
+    if (response.success) {
+      setSessions(sessions.filter(s => s.id !== sessionId));
+      // Reset form ke mode tambah jika sesi yang dihapus sedang diedit
+      if (editingSession && editingSession.id === sessionId) {
+        resetSessionForm();
       }
+    } else {
+      alert(response.message || 'Gagal menghapus sesi');
     }
+    setDeleteModal({ isOpen: false, type: 'session', id: null, title: '' });
   };
 
   const resetSessionForm = () => {
@@ -409,7 +414,7 @@ export default function AdminProgramsPage() {
                         <Edit2 className="w-5 h-5" />
                       </button>
                       <button
-                        onClick={() => handleDelete(program.id)}
+                        onClick={() => setDeleteModal({ isOpen: true, type: 'program', id: program.id, title: program.name })}
                         className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                       >
                         <Trash2 className="w-5 h-5" />
@@ -817,7 +822,7 @@ export default function AdminProgramsPage() {
                                 <Edit2 className="w-4 h-4" />
                               </button>
                               <button
-                                onClick={() => handleDeleteSession(session.id)}
+                                onClick={() => setDeleteModal({ isOpen: true, type: 'session', id: session.id, title: session.title })}
                                 className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors"
                                 title="Hapus Sesi"
                               >
@@ -841,6 +846,27 @@ export default function AdminProgramsPage() {
           </motion.div>
         )}
       </AnimatePresence>
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteModal.isOpen}
+        title={deleteModal.type === 'program' ? 'Hapus Program' : 'Hapus Sesi'}
+        message={
+          deleteModal.type === 'program'
+            ? `Yakin ingin menghapus program "${deleteModal.title}"? Aksi ini tidak dapat dibatalkan.`
+            : `Yakin ingin menghapus sesi "${deleteModal.title}"? Aksi ini tidak dapat dibatalkan.`
+        }
+        confirmText="Hapus"
+        onConfirm={() => {
+          if (deleteModal.type === 'session' && deleteModal.id) {
+            handleDeleteSession(deleteModal.id);
+          } else if (deleteModal.id) {
+            handleDelete(deleteModal.id);
+          }
+        }}
+        onCancel={() => setDeleteModal({ isOpen: false, type: 'program', id: null, title: '' })}
+        danger
+      />
     </div>
   );
 }

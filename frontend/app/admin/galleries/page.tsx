@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { getGalleries, createGallery, updateGallery, deleteGallery, getGalleryPhotos, addGalleryPhotos, deleteGalleryPhoto, uploadFeaturedVideo, deleteFeaturedVideo } from '@/lib/admin-api';
+import { ConfirmModal } from '@/components/ui/confirm-modal';
 
 interface AdminGalleryPhoto {
   id: number;
@@ -81,6 +82,12 @@ export default function AdminGalleriesPage() {
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [uploadingVideo, setUploadingVideo] = useState(false);
   const [deletingVideo, setDeletingVideo] = useState(false);
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; type: 'gallery' | 'video' | 'photo'; id: number | null; title: string }>({
+    isOpen: false,
+    type: 'gallery',
+    id: null,
+    title: '',
+  });
 
   // Load galleries on mount
   useEffect(() => {
@@ -287,8 +294,6 @@ export default function AdminGalleriesPage() {
   };
 
   const handleDeleteVideo = async () => {
-    if (!confirm('Hapus video featured ini? Tindakan ini tidak dapat dibatalkan.')) return;
-
     setDeletingVideo(true);
     const response = await deleteFeaturedVideo();
     if (response.success) {
@@ -298,6 +303,7 @@ export default function AdminGalleriesPage() {
       alert(response.message || 'Gagal menghapus video.');
     }
     setDeletingVideo(false);
+    setDeleteModal({ isOpen: false, type: 'video', id: null, title: '' });
   };
 
   const openCreateModal = () => {
@@ -354,16 +360,15 @@ export default function AdminGalleriesPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (confirm('Yakin ingin menghapus galeri beserta foto?')) {
-      const response = await deleteGallery(id);
-      if (response.success) {
-        fetchGalleries();
-        if (viewingGallery?.id === id) {
-          closeViewModal();
-        }
-      } else {
-        alert(response.message || 'Gagal menghapus');
+    const response = await deleteGallery(id);
+    if (response.success) {
+      fetchGalleries();
+      if (viewingGallery?.id === id) {
+        closeViewModal();
       }
+      setDeleteModal({ isOpen: false, type: 'gallery', id: null, title: '' });
+    } else {
+      alert(response.message || 'Gagal menghapus');
     }
   };
 
@@ -393,12 +398,11 @@ export default function AdminGalleriesPage() {
   };
 
   const handleDeletePhoto = async (photoId: number) => {
-    if (confirm('Hapus foto ini?')) {
-      const response = await deleteGalleryPhoto(photoId);
-      if (response.success) {
-        setGalleryPhotos(prev => prev.filter(p => p.id !== photoId));
-        fetchGalleries();
-      }
+    const response = await deleteGalleryPhoto(photoId);
+    if (response.success) {
+      setGalleryPhotos(prev => prev.filter(p => p.id !== photoId));
+      fetchGalleries();
+      setDeleteModal({ isOpen: false, type: 'photo', id: null, title: '' });
     }
   };
 
@@ -496,7 +500,7 @@ export default function AdminGalleriesPage() {
                 </div>
               </div>
               <button
-                onClick={handleDeleteVideo}
+                onClick={() => setDeleteModal({ isOpen: true, type: 'video', id: featuredVideo.id, title: featuredVideo.title })}
                 disabled={deletingVideo}
                 className="shrink-0 px-3 py-1.5 text-sm text-red-600 border border-red-200 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
               >
@@ -524,7 +528,7 @@ export default function AdminGalleriesPage() {
                 </p>
               </div>
               <button
-                onClick={handleDeleteVideo}
+                onClick={() => setDeleteModal({ isOpen: true, type: 'video', id: processingVideo.id, title: processingVideo.title })}
                 disabled={deletingVideo}
                 className="shrink-0 px-3 py-1.5 text-sm text-red-600 border border-red-200 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
               >
@@ -740,7 +744,7 @@ export default function AdminGalleriesPage() {
                     Edit
                   </button>
                   <button
-                    onClick={() => handleDelete(gallery.id)}
+                    onClick={() => setDeleteModal({ isOpen: true, type: 'gallery', id: gallery.id, title: gallery.title })}
                     className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -920,7 +924,7 @@ export default function AdminGalleriesPage() {
                         className="w-full h-full object-cover rounded"
                       />
                       <button
-                        onClick={() => handleDeletePhoto(photo.id)}
+                        onClick={() => setDeleteModal({ isOpen: true, type: 'photo', id: photo.id, title: '' })}
                         className="absolute top-1 right-1 p-1 bg-red-500 text-white rounded opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -937,6 +941,31 @@ export default function AdminGalleriesPage() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteModal.isOpen}
+        title={
+          deleteModal.type === 'gallery' ? 'Hapus Galeri' :
+          deleteModal.type === 'video' ? 'Hapus Video' :
+          'Hapus Foto'
+        }
+        message={
+          deleteModal.type === 'gallery' ? `Yakin ingin menghapus "${deleteModal.title}" beserta semua fotonya? Aksi ini tidak dapat dibatalkan.` :
+          deleteModal.type === 'video' ? `Yakin ingin menghapus video "${deleteModal.title}"? Aksi ini tidak dapat dibatalkan.` :
+          'Yakin ingin menghapus foto ini? Aksi ini tidak dapat dibatalkan.'
+        }
+        confirmText="Hapus"
+        onConfirm={() => {
+          if (deleteModal.type === 'video') {
+            handleDeleteVideo();
+          } else if (deleteModal.id) {
+            handleDelete(deleteModal.id);
+          }
+        }}
+        onCancel={() => setDeleteModal({ isOpen: false, type: 'gallery', id: null, title: '' })}
+        danger
+      />
     </div>
   );
 }

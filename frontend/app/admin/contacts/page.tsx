@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { getContacts, markContactRead, deleteContact } from '@/lib/admin-api';
+import { ConfirmModal } from '@/components/ui/confirm-modal';
 
 interface Contact {
   id: number;
@@ -20,6 +21,10 @@ export default function AdminContactsPage() {
   const [selectedContact, setSelectedContact] = useState<Contact | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; id: number | null }>({
+    isOpen: false,
+    id: null,
+  });
   const hasFetched = useRef(false);
 
   useEffect(() => {
@@ -68,24 +73,23 @@ export default function AdminContactsPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (confirm('Yakin ingin menghapus pesan ini? Aksi ini tidak dapat dibatalkan.')) {
-      try {
-        const response = await deleteContact(id);
-        if (response.success) {
-          if (selectedContact?.id === id) {
-            setShowDetailModal(false);
-            setSelectedContact(null);
-          }
-          // Remove from local state
-          setContacts(prev => prev.filter(c => c.id !== id));
-        } else {
-          alert(response.message || 'Gagal menghapus');
+    try {
+      const response = await deleteContact(id);
+      if (response.success) {
+        if (selectedContact?.id === id) {
+          setShowDetailModal(false);
+          setSelectedContact(null);
         }
-      } catch (err) {
-        console.error('Error deleting contact:', err);
-        alert('Gagal menghapus pesan');
+        // Remove from local state
+        setContacts(prev => prev.filter(c => c.id !== id));
+      } else {
+        alert(response.message || 'Gagal menghapus');
       }
+    } catch (err) {
+      console.error('Error deleting contact:', err);
+      alert('Gagal menghapus pesan');
     }
+    setDeleteModal({ isOpen: false, id: null });
   };
 
   // Memoized filtered contacts
@@ -331,7 +335,7 @@ export default function AdminContactsPage() {
                   Tutup
                 </button>
                 <button
-                  onClick={() => handleDelete(selectedContact.id)}
+                  onClick={() => setDeleteModal({ isOpen: true, id: selectedContact.id })}
                   className="flex-1 px-4 py-2 bg-red-500 hover:bg-red-600 text-white font-medium rounded-lg transition-colors flex items-center justify-center gap-2"
                 >
                   <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -344,6 +348,17 @@ export default function AdminContactsPage() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteModal.isOpen}
+        title="Hapus Pesan"
+        message="Yakin ingin menghapus pesan ini? Aksi ini tidak dapat dibatalkan."
+        confirmText="Hapus"
+        onConfirm={() => deleteModal.id && handleDelete(deleteModal.id)}
+        onCancel={() => setDeleteModal({ isOpen: false, id: null })}
+        danger
+      />
     </div>
   );
 }

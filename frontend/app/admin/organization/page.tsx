@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { getOrganizationMembers, createMember, updateMember, deleteMember } from '@/lib/admin-api';
 import { X, Upload, Trash2, Edit, Plus, User, GripVertical, Check } from 'lucide-react';
+import { ConfirmModal } from '@/components/ui/confirm-modal';
 
 interface OrganizationMember {
   id: number;
@@ -67,6 +68,11 @@ export default function AdminOrganizationPage() {
   const [previewPhoto, setPreviewPhoto] = useState<string | null>(null);
   const [showActiveOnly, setShowActiveOnly] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; memberId: number | null; memberName: string }>({
+    isOpen: false,
+    memberId: null,
+    memberName: '',
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const hasFetched = useRef(false);
 
@@ -181,18 +187,17 @@ export default function AdminOrganizationPage() {
   };
 
   const handleDelete = async (id: number) => {
-    if (confirm('Yakin ingin menghapus anggota ini? Aksi ini tidak dapat dibatalkan.')) {
-      try {
-        const response = await deleteMember(id);
-        if (response.success) {
-          setMembers(prev => prev.filter(m => m.id !== id));
-        } else {
-          alert(response.message || 'Gagal menghapus');
-        }
-      } catch (err) {
-        console.error('Delete error:', err);
-        alert('Gagal menghapus anggota');
+    setDeleteModal({ isOpen: false, memberId: null, memberName: '' });
+    try {
+      const response = await deleteMember(id);
+      if (response.success) {
+        setMembers(prev => prev.filter(m => m.id !== id));
+      } else {
+        alert(response.message || 'Gagal menghapus');
       }
+    } catch (err) {
+      console.error('Delete error:', err);
+      alert('Gagal menghapus anggota');
     }
   };
 
@@ -335,7 +340,9 @@ export default function AdminOrganizationPage() {
                     )}
                   </button>
                   <button
-                    onClick={() => handleDelete(member.id)}
+                    onClick={() => {
+                      setDeleteModal({ isOpen: true, memberId: member.id, memberName: member.name });
+                    }}
                     className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                     title="Hapus"
                   >
@@ -658,6 +665,17 @@ export default function AdminOrganizationPage() {
           </div>
         </div>
       )}
+
+      {/* Delete Confirmation Modal */}
+      <ConfirmModal
+        isOpen={deleteModal.isOpen}
+        title="Hapus Anggota"
+        message={`Yakin ingin menghapus "${deleteModal.memberName}"? Aksi ini tidak dapat dibatalkan.`}
+        confirmText="Hapus"
+        onConfirm={() => deleteModal.memberId && handleDelete(deleteModal.memberId)}
+        onCancel={() => setDeleteModal({ isOpen: false, memberId: null, memberName: '' })}
+        danger
+      />
     </div>
   );
 }
