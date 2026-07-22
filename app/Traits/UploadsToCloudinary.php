@@ -6,7 +6,6 @@ use App\Models\GalleryVideo;
 use Cloudinary\Cloudinary;
 use Cloudinary\Asset\AssetType;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 trait UploadsToCloudinary
@@ -152,17 +151,8 @@ trait UploadsToCloudinary
             'eager_async'  => true,
         ]);
 
-        // Log the full raw response so we can verify whether Cloudinary included
-        // an 'eager' key at all (it should, with status="pending" when async).
-        Log::debug('uploadVideoToCloudinaryAsync: full Cloudinary response', [
-            'public_id'       => $result['public_id'] ?? 'N/A',
-            'secure_url'      => $result['secure_url'] ?? 'N/A',
-            'eager'           => $result['eager'] ?? 'NOT_PRESENT',
-            'eager_async'     => true,
-            'width'           => $result['width'] ?? 'N/A',
-            'height'          => $result['height'] ?? 'N/A',
-            'format'          => $result['format'] ?? 'N/A',
-            'response_keys'   => array_keys((array) $result),
+        Log::info('uploadVideoToCloudinaryAsync: video uploaded with async eager', [
+            'public_id' => $result['public_id'] ?? 'N/A',
         ]);
 
         $width     = (int) ($result['width'] ?? 0);
@@ -172,70 +162,6 @@ trait UploadsToCloudinary
             'pending_video_url' => $result['secure_url'],
             'public_id'        => $result['public_id'],
             'is_portrait'      => $height > $width,
-        ];
-    }
-
-    /**
-     * Upload a video to Cloudinary with automatic 720p transcoding and return
-     * metadata needed to create a GalleryVideo record.
-     *
-     * The eager transformation (uploaded directly during the upload call) produces
-     * an H.264/MP4 file scaled to a maximum of 720p with auto quality, replacing
-     * any .mov source with the transcoded .mp4.
-     *
-     * Cloudinary returns width, height, duration and bytes in the response,
-     * which we use for orientation detection and file-size tracking.
-     *
-     * @param UploadedFile $file The uploaded video file (mp4 or mov).
-     * @param string       $folder The Cloudinary folder to upload into.
-     * @return array{
-     *     video_url: string,
-     *     public_id: string,
-     *     thumbnail_url: string,
-     *     duration: int,
-     *     file_size: int,
-     *     is_portrait: bool,
-     *     width: int,
-     *     height: int,
-     * }
-     * @throws \Cloudinary\Api\Exception\ApiError
-     */
-    protected function uploadVideoToCloudinary(UploadedFile $file, string $folder): array
-    {
-        $cloudinary = new Cloudinary(config('services.cloudinary.url'));
-
-        // Eager transformation: transcode to H.264/MP4, cap at 720p (shortest side),
-        // auto quality. Single transformation only — no multiple variants.
-        $eagerTransformation = [
-            'width'       => 720,
-            'height'      => 720,
-            'crop'        => 'limit',
-            'quality'     => 'auto',
-            'format'      => 'mp4',
-        ];
-
-        $result = $cloudinary->uploadApi()->upload($file->getRealPath(), [
-            'folder'               => $folder,
-            'resource_type'        => AssetType::VIDEO,
-            'transformation'       => $eagerTransformation,
-            'eager'               => 'w_720,h_720,c_limit,q_auto,f_mp4',
-            'eager_async'          => false, // synchronous — we want the result immediately
-            'raw_convert'          => null,   // disable auto-raw-convert
-        ]);
-
-        $width    = (int) ($result['width'] ?? 0);
-        $height   = (int) ($result['height'] ?? 0);
-        $isPortrait = $height > $width;
-
-        return [
-            'video_url'     => $result['secure_url'],
-            'public_id'    => $result['public_id'],
-            'thumbnail_url' => $this->buildVideoThumbnailUrl($result['secure_url']),
-            'duration'     => (int) ($result['duration'] ?? 0),
-            'file_size'    => (int) ($result['bytes'] ?? 0),
-            'is_portrait'  => $isPortrait,
-            'width'        => $width,
-            'height'       => $height,
         ];
     }
 
@@ -270,7 +196,7 @@ trait UploadsToCloudinary
      * status='processing', then dispatches ProcessFeaturedVideoUpload to poll
      * Cloudinary and populate the final video_url once the transformation is done.
      *
-     * Unlike replaceFeaturedVideo (sync), this returns immediately so the
+     * Unlike the old synchronous upload path, this returns immediately so the
      * frontend can show a "processing" state while transcoding runs on Cloudinary.
      *
      * @param UploadedFile $file   The uploaded video file.
@@ -328,72 +254,5 @@ trait UploadsToCloudinary
         ]);
 
         return $galleryVideo;
-    }
-
-    /**
-     * Replace the currently active featured video with a new one.
-     *
-     * Flow:
-     *  1. If an active video exists, delete its Cloudinary asset and DB record.
-     *  2. Upload the new video to Cloudinary (720p H.264/MP4 eager transcode).
-     *  3. Create a new GalleryVideo record with expires_at = now + 7 days.
-     *
-     * Steps 2 and 3 are wrapped in a DB transaction so that a failure during record
-     * creation rolls back cleanly. Step 1 (cleanup of the previous video) is NOT
-     * rolled back — if it fails we log the error and continue, because a stale
-     * Cloudinary asset without a DB record is harmless (and will be reaped by the
-     * cleanup job if it truly orphaned).
-     *
-     * @param UploadedFile $file   The uploaded video file.
-     * @param string       $title  The required title.
-     * @param int          $userId The authenticated admin's user ID.
-     * @return GalleryVideo The newly created GalleryVideo record.
-     *
-     * @throws \Cloudinary\Api\Exception\ApiError  If the Cloudinary upload fails.
-     * @throws \Throwable                         If the DB record creation fails.
-     */
-    protected function replaceFeaturedVideo(UploadedFile $file, string $title, int $userId): GalleryVideo
-    {
-        // ── Step 1: delete any currently active video ──────────────────────────
-        $previous = GalleryVideo::active()->first();
-
-        if ($previous) {
-            try {
-                $this->deleteVideoFromCloudinary($previous->public_id);
-                Log::info('replaceFeaturedVideo: deleted previous Cloudinary asset', [
-                    'public_id' => $previous->public_id,
-                ]);
-            } catch (\Throwable $e) {
-                // Log but continue — stale Cloudinary asset is not a data-integrity issue.
-                Log::error('replaceFeaturedVideo: failed to delete previous Cloudinary asset', [
-                    'public_id' => $previous->public_id,
-                    'error'     => $e->getMessage(),
-                ]);
-            }
-
-            // Delete the old DB record before creating the new one.
-            // We keep it outside the transaction so a failure here doesn't block the upload.
-            $previous->delete();
-            Log::info('replaceFeaturedVideo: deleted previous GalleryVideo record', [
-                'id' => $previous->id,
-            ]);
-        }
-
-        // ── Step 2 & 3: upload + create record (transactional) ──────────────────
-        return DB::transaction(function () use ($file, $title, $userId) {
-            $meta = $this->uploadVideoToCloudinary($file, 'kartar/videos');
-
-            return GalleryVideo::create([
-                'uploaded_by'   => $userId,
-                'title'        => $title,
-                'video_url'    => $meta['video_url'],
-                'public_id'    => $meta['public_id'],
-                'thumbnail_url'=> $meta['thumbnail_url'],
-                'duration'     => $meta['duration'],
-                'file_size'    => $meta['file_size'],
-                'is_portrait'  => $meta['is_portrait'],
-                'expires_at'   => now()->addDays(7),
-            ]);
-        });
     }
 }

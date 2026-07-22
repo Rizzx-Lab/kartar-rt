@@ -1153,8 +1153,8 @@ class AdminApiController extends Controller
     /**
      * Delete the currently active or processing featured video (if any).
      *
-     * Unlike featuredVideoDestroy, this targets whichever record exists regardless
-     * of status — useful for cleaning up a processing video the admin regrets.
+     * Unlike the previous sync-era design, this targets whichever video exists
+     * regardless of status — useful for cleaning up a processing video the admin regrets.
      */
     public function featuredVideoDestroy(): JsonResponse
     {

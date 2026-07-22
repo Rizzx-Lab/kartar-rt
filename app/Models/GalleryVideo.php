@@ -24,6 +24,8 @@ class GalleryVideo extends Model
     protected $casts = [
         'expires_at'  => 'datetime',
         'is_portrait' => 'boolean',
+        'duration'    => 'integer',
+        'file_size'   => 'integer',
     ];
 
     public function uploader(): BelongsTo

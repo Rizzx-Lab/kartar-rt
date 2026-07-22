@@ -32,7 +32,9 @@ class DeleteExpiredFeaturedVideos extends Command
 
     public function handle(): int
     {
-        $expiredVideos = GalleryVideo::where('expires_at', '<=', now())->get();
+        $expiredVideos = GalleryVideo::where('expires_at', '<=', now())
+            ->where('status', 'active')
+            ->get();
 
         if ($expiredVideos->isEmpty()) {
             return Command::SUCCESS;

@@ -198,6 +198,16 @@ A standalone "featured video" feature for the Gallery page. Admin can upload one
   - **No migrations needed.**
   - **Fully deployed and verified** (2026-07-21, ~15:00). Confirmed via production log: video uploaded → job activates in ~1-2 cron ticks → `derived` array present with `c_limit,h_720,q_auto,w_720/mp4` → bytes reduced from ~43 MB to ~8.6 MB (H.264/MP4 transcode). Cloudinary dashboard shows Derived assets with `w_720` transformation.
 
+- **2026-07-22 — Cleanup audit pass (post end-to-end verification)**
+  - A full audit was conducted after the successful production test upload to establish a clean baseline. Issues found and fixed:
+    1. **CRITICAL — `gallery-videos:purge-expired` missing `status` filter:** The purge query `GalleryVideo::where('expires_at', '<=', now())->get()` had no `status` condition, so it would delete records in `'processing'` or `'failed'` state that had expired. A `processing` record whose job hadn't completed by expiry would be silently removed before ever going live. Fixed: added `->where('status', 'active')` to the query in `DeleteExpiredFeaturedVideos::handle()`.
+    2. **Debug logging removed from `uploadVideoToCloudinaryAsync()`:** `.env` has `LOG_LEVEL=debug` in production — the full Cloudinary upload response dump (`public_id`, `secure_url`, `eager` key, dimensions, format, `response_keys`) was being written on every upload. Replaced with a single `Log::info()` line containing only the `public_id`. No migrations.
+    3. **Dead sync-era methods removed from `UploadsToCloudinary.php`:** `uploadVideoToCloudinary()` (old sync upload with buggy raw-string eager param) and `replaceFeaturedVideo()` (old sync wrapper) had zero callers after the async migration. Confirmed via full-codebase grep. Both methods plus their docstrings, and the now-unused `use Illuminate\Support\Facades\DB` import, removed. The docstring in `replaceFeaturedVideoAsync()` was updated from "Unlike replaceFeaturedVideo (sync)..." to "Unlike the old synchronous upload path...". No migrations.
+    4. **`GalleryVideo` model: added integer casts** for `duration` and `file_size` to `$casts`, ensuring consistent integer return types in API responses regardless of PDO driver. No migrations.
+    5. **`featuredVideoDestroy()` docstring** had a self-reference ("Unlike featuredVideoDestroy...") — replaced with "Unlike the previous sync-era design...". Non-functional. No migrations.
+  - **Deploy note:** No migrations required. Code-only deploy. No `php artisan migrate` needed.
+
+
 
 ---
 
