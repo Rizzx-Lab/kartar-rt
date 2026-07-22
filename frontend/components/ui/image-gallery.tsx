@@ -134,13 +134,13 @@ function AnimatedGalleryGrid({
             : { maxHeight: '600px', WebkitMaskImage: 'linear-gradient(to bottom, transparent, black 10%, black 90%, transparent)', maskImage: 'linear-gradient(to bottom, transparent, black 10%, black 90%, transparent)' }
         }
       >
-        {/* Left photo column */}
+        {/* Left photo column — hidden on mobile when video exists, visible otherwise */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="w-full sm:w-72 md:w-80 shrink-0 overflow-hidden"
+          className={`shrink-0 overflow-hidden ${hasVideo ? 'hidden md:block w-full sm:w-72 md:w-80' : 'w-full sm:w-72 md:w-80'}`}
           onMouseEnter={() => setIsHovered(true)}
           onMouseLeave={() => setIsHovered(false)}
         >
@@ -160,6 +160,7 @@ function AnimatedGalleryGrid({
 
         {/* Center: pinned video (when active) or photo column 2 (when no video) */}
         {hasVideo ? (
+          /* Video always visible — full width on mobile, sm:w-72 md:w-80 on larger */
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
@@ -196,7 +197,7 @@ function AnimatedGalleryGrid({
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="w-full sm:w-72 md:w-80 shrink-0 overflow-hidden"
+            className="hidden sm:block w-full sm:w-72 md:w-80 shrink-0 overflow-hidden"
           >
             <div
               className={`flex flex-col gap-4 ${shouldAutoScroll ? slowClass : ''}`}
@@ -213,7 +214,7 @@ function AnimatedGalleryGrid({
           </motion.div>
         )}
 
-        {/* Right photo column — hidden on mobile when video is active */}
+        {/* Right photo column */}
         {hasVideo ? (
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -242,7 +243,7 @@ function AnimatedGalleryGrid({
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.3 }}
-            className="w-full sm:w-72 md:w-80 shrink-0 overflow-hidden"
+            className="hidden md:block w-full sm:w-72 md:w-80 shrink-0 overflow-hidden"
           >
             <div
               className={`flex flex-col gap-4 ${shouldAutoScroll ? mediumClass : ''}`}
