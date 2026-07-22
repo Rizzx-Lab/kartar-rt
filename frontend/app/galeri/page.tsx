@@ -45,13 +45,23 @@ async function getGalleryData() {
       getSettings({ cache: 'no-store' }),
     ]);
 
+    // TODO DEBUG: log raw settings response to verify gallery_auto_scroll value
+    console.log('[DEBUG getGalleryData] settingsRes:', JSON.stringify({
+      success: settingsRes.success,
+      hasData: !!settingsRes.data,
+      gallery_auto_scroll: settingsRes.data?.gallery_auto_scroll,
+      gallery_scroll_speed: settingsRes.data?.gallery_scroll_speed,
+      allKeys: settingsRes.data ? Object.keys(settingsRes.data) : 'NO_DATA',
+    }));
+
     return {
       recentPhotos: photosRes.success && photosRes.data ? photosRes.data : mockPhotos,
       archives: archivesRes.success && archivesRes.data ? archivesRes.data : mockArchives,
       settings: settingsRes.success && settingsRes.data ? settingsRes.data : defaultSettings,
     };
-  } catch {
+  } catch (e) {
     // Fallback to mock data if API fails
+    console.log('[DEBUG getGalleryData] API call failed, using defaults:', e);
     return {
       recentPhotos: mockPhotos,
       archives: mockArchives,
@@ -65,6 +75,13 @@ export default async function GalleryPage() {
 
   // Auto scroll logic: only if photos >= 3 and setting is enabled
   const shouldAutoScroll = settings.gallery_auto_scroll && recentPhotos.length >= 3;
+
+  // TODO DEBUG: log computed values
+  console.log('[DEBUG GalleryPage] shouldAutoScroll:', shouldAutoScroll, {
+    gallery_auto_scroll: settings.gallery_auto_scroll,
+    recentPhotos_count: recentPhotos.length,
+    scrollSpeed: settings.gallery_scroll_speed,
+  });
 
   return (
     <GalleryTabs
