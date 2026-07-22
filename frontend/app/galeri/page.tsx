@@ -53,6 +53,7 @@ async function getGalleryData() {
       gallery_scroll_speed: settingsRes.data?.gallery_scroll_speed,
       allKeys: settingsRes.data ? Object.keys(settingsRes.data) : 'NO_DATA',
     }));
+    console.log('[DEBUG getGalleryData] photosRes.success:', photosRes.success, 'count:', photosRes.data?.length);
 
     return {
       recentPhotos: photosRes.success && photosRes.data ? photosRes.data : mockPhotos,
@@ -72,6 +73,11 @@ async function getGalleryData() {
 
 export default async function GalleryPage() {
   const { recentPhotos, archives, settings } = await getGalleryData();
+
+  // TODO DEBUG: visible in page source — remove after debugging
+  // SSR DEBUG: gallery_auto_scroll={String(settings.gallery_auto_scroll)}
+  //           recentPhotos.length={recentPhotos.length}
+  //           shouldAutoScroll={String(settings.gallery_auto_scroll && recentPhotos.length >= 3)}
 
   // Auto scroll logic: only if photos >= 3 and setting is enabled
   const shouldAutoScroll = settings.gallery_auto_scroll && recentPhotos.length >= 3;

@@ -1,6 +1,7 @@
 // Unified API Service - Next.js connects to Laravel Backend
 
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api/v1';
+console.log('[DEBUG apiFetch] API_BASE_URL:', API_BASE_URL);
 
 // Types
 export interface ApiResponse<T> {
@@ -19,7 +20,10 @@ export interface ApiResponse<T> {
 // API Helper
 async function apiFetch<T>(endpoint: string, options?: RequestInit): Promise<ApiResponse<T>> {
   try {
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const fetchUrl = `${API_BASE_URL}${endpoint}`;
+    console.log('[DEBUG apiFetch] fetching:', fetchUrl, 'options:', JSON.stringify({ ...options, headers: options?.headers ? '(headers present)' : undefined }));
+
+    const response = await fetch(fetchUrl, {
       headers: {
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -32,9 +36,12 @@ async function apiFetch<T>(endpoint: string, options?: RequestInit): Promise<Api
       throw new Error(`HTTP error! status: ${response.status}`);
     }
 
-    return await response.json();
+    const result = await response.json();
+    console.log(`[DEBUG apiFetch] ${endpoint} -> status:${response.status} success:${result.success} hasData:${!!result.data}`);
+    return result;
   } catch (error) {
-    console.error(`API Error [${endpoint}]:`, error);
+    console.error(`[DEBUG apiFetch] FETCH FAILED for ${endpoint}:`, error);
+    console.error(`[DEBUG apiFetch] -> returning success:false (will use defaultSettings)`);
     return {
       success: false,
       data: null as T,
