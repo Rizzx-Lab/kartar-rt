@@ -716,7 +716,7 @@ class AdminApiController extends Controller
         $gallery = Gallery::findOrFail($id);
 
         $request->validate([
-            'photos.*' => 'required|image|max:2048',
+            'photos.*' => 'required|image|max:10240',
             'captions.*' => 'nullable|string|max:200',
         ]);
 

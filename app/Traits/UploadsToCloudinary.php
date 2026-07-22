@@ -105,7 +105,7 @@ trait UploadsToCloudinary
      * Upload a video to Cloudinary with asynchronous eager transformation.
      *
      * The upload returns immediately with a raw/unconverted video URL. Cloudinary
-     * queues the 720p H.264/MP4 transformation asynchronously. The raw URL is
+     * queues the 1080p H.264/MP4 transformation asynchronously. The raw URL is
      * stored in `pending_video_url` on the GalleryVideo record; ProcessFeaturedVideoUpload
      * polls Cloudinary until the transformation completes, then populates `video_url`
      * and `status = 'active'`.
@@ -116,7 +116,7 @@ trait UploadsToCloudinary
      *
      * NOTE: the `eager` param MUST be an array of qualifiers (not a raw URL-syntax
      * string), otherwise the SDK's AssetTransformation serialiser doubles the format
-     * qualifier (producing e.g. "w_720,h_720,c_limit,q_auto,f_mp4/f_mp4") and
+     * qualifier (producing e.g. "w_1080,h_1080,c_limit,q_auto,f_mp4/f_mp4") and
      * Cloudinary silently ignores the malformed eager string — no transformation
      * is ever queued.
      *
@@ -128,17 +128,17 @@ trait UploadsToCloudinary
     {
         $cloudinary = new Cloudinary(config('services.cloudinary.url'));
 
-        // Eager transformation: transcode to H.264/MP4, cap at 720p on BOTH
+        // Eager transformation: transcode to H.264/MP4, cap at 1080p on BOTH
         // dimensions (c_limit constrains width AND height while preserving aspect
-        // ratio). For a portrait source (e.g. 720x1280), the height bound of 720
+        // ratio). For a portrait source (e.g. 1080x1920), the height bound of 1080
         // is already satisfied so only width gets capped — portrait is preserved.
         // Passed as an array of qualifiers — NOT a raw string — so the SDK's
-        // AssetTransformation serialiser produces "w_720,h_720,c_limit,q_auto/f_mp4"
-        // instead of the malformed double-format "w_720,h_720,c_limit,q_auto,f_mp4/f_mp4"
+        // AssetTransformation serialiser produces "w_1080,h_1080,c_limit,q_auto/f_mp4"
+        // instead of the malformed double-format "w_1080,h_1080,c_limit,q_auto,f_mp4/f_mp4"
         // that Cloudinary silently ignores.
         $eagerTransformation = [
-            'width'   => 720,
-            'height'  => 720,
+            'width'   => 1080,
+            'height'  => 1080,
             'crop'    => 'limit',
             'quality' => 'auto',
             'format'  => 'mp4',

@@ -92,10 +92,10 @@ class ProcessFeaturedVideoUpload implements ShouldQueue
         // Each derived entry has 'transformation' and 'secure_url'.
         $derived = $resource['derived'] ?? [];
 
-        // Find the variant matching our w_720 transformation.
+        // Find the variant matching our w_1080 transformation.
         $transformed = null;
         foreach ($derived as $variant) {
-            if (isset($variant['transformation']) && str_contains($variant['transformation'], 'w_720')) {
+            if (isset($variant['transformation']) && str_contains($variant['transformation'], 'w_1080')) {
                 $transformed = $variant;
                 break;
             }
