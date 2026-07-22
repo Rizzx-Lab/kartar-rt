@@ -146,6 +146,7 @@ function AnimatedGalleryGrid({
         >
           <div
             className={`flex flex-col gap-4 ${shouldAutoScroll ? normalClass : ''}`}
+            style={shouldAutoScroll ? { '--scroll-duration': `${videoScrollSpeed}s` } as React.CSSProperties : undefined}
           >
             {[...column1, ...column1].map((photo, idx) => (
               <AnimatedGalleryItem
@@ -170,6 +171,7 @@ function AnimatedGalleryGrid({
             <div className="relative w-full" style={{ aspectRatio: '9/16' }}>
               <video
                 src={featuredVideo.video_url ?? undefined}
+                autoPlay
                 controls
                 muted
                 playsInline
@@ -220,9 +222,10 @@ function AnimatedGalleryGrid({
             className="hidden lg:block w-full sm:w-72 md:w-80 shrink-0 overflow-hidden"
           >
             <div
-              className={`flex flex-col gap-4 ${shouldAutoScroll ? mediumClass : ''}`}
+              className={`flex flex-col gap-4 ${shouldAutoScroll ? slowClass : ''}`}
+              style={shouldAutoScroll ? { '--scroll-duration': `${videoScrollSpeed}s` } as React.CSSProperties : undefined}
             >
-              {[...column2, ...column2].map((photo, idx) => (
+              {[...column1, ...column1].map((photo, idx) => (
                 <AnimatedGalleryItem
                   key={`col3-${photo.id}-${idx}`}
                   photo={photo}

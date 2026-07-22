@@ -207,6 +207,17 @@ A standalone "featured video" feature for the Gallery page. Admin can upload one
     5. **`featuredVideoDestroy()` docstring** had a self-reference ("Unlike featuredVideoDestroy...") — replaced with "Unlike the previous sync-era design...". Non-functional. No migrations.
   - **Deploy note:** No migrations required. Code-only deploy. No `php artisan migrate` needed.
 
+- **2026-07-22 — Public gallery display fixes (autoplay + auto-scroll regression)**
+  - Two issues found and fixed in `frontend/components/ui/image-gallery.tsx`:
+    1. **Video autoplay:** The pinned featured video had `muted playsInline loop controls` but was missing `autoplay` — it required manual user interaction to play. Added `autoPlay` attribute to the `<video>` element. `muted` was already correct (browsers require video to be muted for autoplay without interaction). `playsInline` was also already present for mobile Safari compatibility.
+    2. **Auto-scroll regression (right photo column frozen when video active):** The right-side photo column in the video-active 3-column layout had two compounding bugs introduced when Task 6 was implemented:
+       - **Wrong animation class:** The right column used `mediumClass` (`scroll-gallery-up-medium`, 35s) when it should use `slowClass` (`scroll-gallery-up-slow`, 40s) — matching the left column's slow scroll speed, so both side columns scroll in sync at the same rate.
+       - **Wrong source array:** The right column mapped from `column2` (the center-column photo set) instead of `column1`. Since both side columns display the same photo set when a video is active, the right column should also map from `column1` (not `column3`, which is only correct when no video is active). This was a copy-paste error — `column3` is only appropriate in the non-video layout where three photo columns exist.
+       - **Admin scroll speed slider not wired:** `videoScrollSpeed = Math.max(20, Math.min(scrollSpeed, 60))` was computed but never applied — it was a dead variable. Added `--scroll-duration` as an inline CSS custom property on the side column `<div>` elements (both left and right columns when video is active), so the admin's gallery scroll speed setting in Pengaturan actually affects the gallery page. The CSS keyframe animations already reference `var(--scroll-duration)` in globals.css; the variable was simply never being set.
+  - **No backend changes. No migrations. Frontend-only code deploy.**
+  - **Visual verification after deploy:** Navigate to `/galeri` with a featured video active. Confirm: (a) the video starts playing automatically on page load (muted); (b) both side photo columns scroll upward continuously at the same slow speed, in sync; (c) changing the "Kecepatan Scroll Galeri" slider in admin Pengaturan changes the photo scroll speed in real-time.
+
+
 
 
 ---
