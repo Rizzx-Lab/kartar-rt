@@ -1080,9 +1080,13 @@ class AdminApiController extends Controller
             SiteSetting::set($key, is_string($value) ? $value : (string) $value);
         }
 
-        // Trigger on-demand ISR revalidation on the Next.js frontend
-        // Settings affect home page, about page, and contact page
-        $this->triggerFrontendRevalidation(['/', '/tentang-kami', '/kontak'], ['home', 'about', 'contact', 'settings']);
+        // Trigger on-demand ISR revalidation on the Next.js frontend.
+        // Settings affect home page, about page, contact page, and the gallery page
+        // (gallery_auto_scroll and gallery_scroll_speed control the public gallery layout).
+        $this->triggerFrontendRevalidation(
+            ['/', '/tentang-kami', '/kontak', '/galeri'],
+            ['home', 'about', 'contact', 'settings', 'galleries']
+        );
 
         return response()->json(['success' => true, 'message' => 'Pengaturan berhasil disimpan.']);
     }

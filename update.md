@@ -218,6 +218,18 @@ A standalone "featured video" feature for the Gallery page. Admin can upload one
   - **No backend changes. No migrations. Frontend-only code deploy.**
   - **Visual verification after deploy:** In admin Pengaturan, set "Kecepatan Scroll Galeri" to 20 (fast) → reload the public `/galeri` page → photos should scroll quickly. Set to 60 (slow) → photos should scroll slowly. Repeat with a featured video active to confirm the side columns in the video layout are also speed-controlled by the same setting. Both video-active and non-video layouts are affected.
 
+- **2026-07-22 — ISR staleness: gallery scroll settings had no effect (photos fully static)**
+  - **Symptom:** After deploying the `animationDuration` fix, photos still did not scroll at all — even with "Auto Scroll Galeri" confirmed ON in admin settings and the slider at 20s.
+  - **Root cause — `/galeri` missing from settings revalidation paths:** Every admin mutation in this codebase (photos, videos, announcements, organization) calls `triggerFrontendRevalidation()` to signal Next.js to refresh the affected pages immediately. The gallery page (`/galeri`) was already in those calls for photo/video mutations, but **`settingsUpdate()` in `AdminApiController.php` never included `/galeri` in its paths array**. The `gallery_auto_scroll` and `gallery_scroll_speed` settings live in the settings table, and when the admin saves them, the backend correctly calls `triggerFrontendRevalidation()` — but the paths list was `['/', '/tentang-kami', '/kontak']` without `/galeri`. Result: the gallery page waited up to 60 seconds for ISR revalidation even after a successful settings save.
+  - **Secondary factor — fetch-level caching:** `getGalleryData()` in `frontend/app/galeri/page.tsx` calls `getSettings()` without `cache: 'no-store'`. Without the revalidation fix, the settings fetch would also be stale from Next.js's default request-level cache. The `cache: 'no-store'` addition remains useful as a belt-and-suspenders guard so the gallery page never shows a stale setting even between ISR windows.
+  - **Files changed:**
+    - `frontend/lib/api.ts` — `getSettings()` now accepts an optional `options: RequestInit` parameter and passes it through to `apiFetch`, allowing callers to opt out of default caching.
+    - `frontend/app/galeri/page.tsx` — calls `getSettings({ cache: 'no-store' })` so the settings fetch always reads live data from Laravel.
+    - `app/Http/Controllers/Api/AdminApiController.php` — `settingsUpdate()`: added `/galeri` to the `triggerFrontendRevalidation()` paths array (and `'galleries'` to the tags array). Updated comment to document the gallery page dependency.
+    - `frontend/app/admin/settings/page.tsx` — initially attempted to call `revalidatePath()` directly from the client component; this was reverted as `revalidatePath` from `next/cache` is a **Server Component-only API** and cannot be called inside a `'use client'` component. The fix is entirely on the Laravel side.
+  - **No migrations. Frontend + Laravel backend code deploy.**
+  - **Verification:** With this fix deployed, toggle "Auto Scroll Galeri" OFF in admin Pengaturan → visit `/galeri` (no page reload needed) → photos stop scrolling immediately. Toggle it back ON → photos resume. Change the slider from 20s to 60s → scroll speed changes. Works without waiting for ISR revalidation because the backend signals Next.js immediately on save.
+
 
 
 

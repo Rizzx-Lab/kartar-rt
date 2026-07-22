@@ -39,7 +39,10 @@ async function getGalleryData() {
     const [photosRes, archivesRes, settingsRes] = await Promise.all([
       getRecentPhotos(30),
       getArchives(),
-      getSettings()
+      // cache: 'no-store' bypasses Next.js fetch-level caching so this always
+      // reads the live value — needed because settings changes (auto-scroll toggle,
+      // scroll speed) must take effect immediately, not after ISR revalidation.
+      getSettings({ cache: 'no-store' }),
     ]);
 
     return {

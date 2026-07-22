@@ -268,8 +268,8 @@ export interface SiteSettings {
   gallery_scroll_speed: number;
 }
 
-export async function getSettings() {
-  return apiFetch<SiteSettings>('/settings');
+export async function getSettings(options?: RequestInit) {
+  return apiFetch<SiteSettings>('/settings', options);
 }
 
 // Default settings for fallback
