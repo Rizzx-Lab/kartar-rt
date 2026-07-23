@@ -148,7 +148,7 @@ function AnimatedGalleryGrid({
           </div>
         </motion.div>
 
-        {/* Center: scrolling photos with pinned video overlay */}
+        {/* Center: pinned video overlay */}
         {hasVideo ? (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
@@ -157,28 +157,14 @@ function AnimatedGalleryGrid({
             transition={{ duration: 0.5, delay: 0.2 }}
             className="w-72 shrink-0 overflow-hidden relative"
           >
-            {/* Scrolling photo column — same source/speed as left/right columns */}
-            <div
-              className={`flex flex-col gap-4 ${shouldAutoScroll ? slowClass : ''}`}
-              style={shouldAutoScroll ? { animationDuration: `${scrollDuration}s` } : undefined}
-            >
-              {[...column1, ...column1].map((photo, idx) => (
-                <AnimatedGalleryItem
-                  key={`col2-${photo.id}-${idx}`}
-                  photo={photo}
-                  onClick={() => handlePhotoClick(photo)}
-                />
-              ))}
-            </div>
-
-            {/* Pinned video overlay — photos scroll behind it */}
+            {/* Pinned video overlay */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
               {/* z-5 fade overlays: between photo scroll z-0 and video z-10 = cloud effect */}
               <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-white/95 to-transparent pointer-events-none z-5" />
               <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white/95 to-transparent pointer-events-none z-5" />
 
               <div className="w-full flex flex-col items-center">
-                {/* Card: pointer-events-auto so only the card area blocks clicks, not the margins */}
+                {/* Card: pointer-events-auto so only the card area blocks clicks */}
                 <div className="w-full bg-white rounded-xl shadow-xl shadow-black/20 ring-1 ring-black/5 pointer-events-auto">
                   <video
                     src={featuredVideo.video_url ?? undefined}
