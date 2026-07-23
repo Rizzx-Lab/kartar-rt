@@ -230,7 +230,7 @@ A standalone "featured video" feature for the Gallery page. Admin can upload one
   - **No migrations. Frontend + Laravel backend code deploy.**
   - **Verification:** With this fix deployed, toggle "Auto Scroll Galeri" OFF in admin Pengaturan → visit `/galeri` (no page reload needed) → photos stop scrolling immediately. Toggle it back ON → photos resume. Change the slider from 20s to 60s → scroll speed changes. Works without waiting for ISR revalidation because the backend signals Next.js immediately on save.
 
-- **2026-07-23 — Desktop-only visual fix: 3-column video-active layout column sizing**
+- **2026-07-23 AM — Desktop-only visual fix: 3-column video-active layout column sizing**
   - **Symptom:** On desktop (`lg:` breakpoint and up), the center video column rendered much narrower/shorter than the side photo columns. The video thumbnail appeared small and the caption sat awkwardly below — visually outclassed by the full-height scrolling photo columns.
   - **Root cause:** The center video column's inner container was constrained by `min-h-[400px] max-h-[60vh]`, and the `<video>` element used `max-w-full max-h-[60vh] w-auto h-auto` with no explicit aspect-ratio enforcement. A 9:16 portrait video at `w-72` (288px) intrinsic width would only reach ~512px tall — far shorter than the `items-stretch` photo columns that extend across the full viewport height. The caption also used `text-sm`, undersized for a pinned centerpiece.
   - **Fix — `frontend/components/ui/image-gallery.tsx`, desktop video column only (`hidden lg:flex` branch, `hasVideo` = true):**
@@ -239,6 +239,25 @@ A standalone "featured video" feature for the Gallery page. Admin can upload one
     3. Bumped caption title from `text-sm` → `text-base` for proper visual weight as the pinned centerpiece.
   - **Mobile layout completely untouched** (`lg:hidden` branch unchanged). No changes to scroll behavior, autoplay, data fetching, revalidation, or any non-visual logic.
   - **Files changed:** `frontend/components/ui/image-gallery.tsx` (desktop video column only). No migrations. No backend changes.
+
+- **2026-07-23 PM — Desktop layout redesign: 3-column scrolling photo layout with pinned video overlay in center column**
+  - **Symptom:** The center column only contained the video (pinned at the top), leaving a large empty gap below it — visually broken compared to the full-height scrolling photo columns on the left and right.
+  - **Design change — `frontend/components/ui/image-gallery.tsx`, desktop video-active branch only:**
+    - **All 3 columns now scroll photos** using `column1` (the same photo set used by left and right columns). Previously, only left/right scrolled; center was static.
+    - **Video repositioned as a pinned overlay** centered within the center column. The outer `motion.div` gets `relative`; an `absolute inset-0 flex items-center justify-center pointer-events-none z-10` overlay wraps the video card. Photos in the center column scroll continuously behind the video.
+    - **Video card:** `w-full max-w-[85%] bg-white rounded-2xl shadow-xl shadow-black/20 ring-1 ring-black/5 pointer-events-auto` — solid white card with shadow makes the video visually distinct from the scrolling photos behind it. `pointer-events-auto` is on the card only (not the full-width wrapper), so the ~15% photo margins on each side of the card remain clickable (lightbox still opens).
+    - **Caption:** moved inside the overlay below the video card, `text-center`, `max-w-[85%]` matching the card width.
+    - Scroll speed (`slowClass`, same as left/right) applied to center column's photo list.
+  - **What changed vs. previous AM fix:** The AM fix was a sizing-only patch (removed height constraints, added `aspect-[9/16]`). This PM change supersedes that — it replaces the entire center column structure from a static video container to a scrolling photo column + pinned video overlay.
+  - **What did NOT change:**
+    - Left column (`column1` photos, `slowClass`, unchanged)
+    - Right column (`column1` photos, `slowClass`, unchanged — still reuses `column1`, not `column3`)
+    - Mobile layout (`lg:hidden` branch, fully untouched)
+    - `autoplay`, `muted`, `playsInline`, `loop`, `controls`, `preload="metadata"` — unchanged
+    - Scroll speed / `scrollDuration` logic — unchanged
+    - Auto-scroll enablement (`shouldAutoScroll`) — unchanged
+    - Any backend API, data fetching, revalidation — unchanged
+  - **Files changed:** `frontend/components/ui/image-gallery.tsx` (desktop `hasVideo` center column only). No migrations. No backend changes.
 
 
 

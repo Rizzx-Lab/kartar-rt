@@ -147,37 +147,56 @@ function AnimatedGalleryGrid({
           </div>
         </motion.div>
 
-        {/* Center: video or photo column 2 */}
+        {/* Center: scrolling photos with pinned video overlay */}
         {hasVideo ? (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             whileInView={{ opacity: 1, scale: 1 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="w-72 shrink-0 overflow-hidden"
+            className="w-72 shrink-0 overflow-hidden relative"
           >
-            {/* Video Container — aspect ratio enforces 9:16 portrait, no max-height cap */}
-            <div className="flex items-center justify-center bg-gray-50 rounded-xl">
-              <video
-                src={featuredVideo.video_url ?? undefined}
-                autoPlay
-                controls
-                muted
-                playsInline
-                loop
-                preload="metadata"
-                className="w-full aspect-[9/16] object-contain rounded-xl"
-                title={featuredVideo.title}
-              />
+            {/* Scrolling photo column — same source/speed as left/right columns */}
+            <div
+              className={`flex flex-col gap-4 ${shouldAutoScroll ? slowClass : ''}`}
+              style={shouldAutoScroll ? { animationDuration: `${scrollDuration}s` } : undefined}
+            >
+              {[...column1, ...column1].map((photo, idx) => (
+                <AnimatedGalleryItem
+                  key={`col2-${photo.id}-${idx}`}
+                  photo={photo}
+                  onClick={() => handlePhotoClick(photo)}
+                />
+              ))}
             </div>
-            {featuredVideo.title && (
-              <div className="mt-3 px-1">
-                <p className="text-base font-medium text-navy-800 truncate">{featuredVideo.title}</p>
-                <p className="text-xs text-gray-400 mt-0.5">
-                  {Math.floor(featuredVideo.duration / 60)}:{String(featuredVideo.duration % 60).padStart(2, '0')} · Featured Video
-                </p>
+
+            {/* Pinned video overlay — photos scroll behind it */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+              <div className="w-full flex flex-col items-center">
+                {/* Card: pointer-events-auto so only the card area blocks clicks, not the margins */}
+                <div className="w-full max-w-[85%] bg-white rounded-2xl shadow-xl shadow-black/20 ring-1 ring-black/5 pointer-events-auto">
+                  <video
+                    src={featuredVideo.video_url ?? undefined}
+                    autoPlay
+                    controls
+                    muted
+                    playsInline
+                    loop
+                    preload="metadata"
+                    className="w-full aspect-[9/16] object-contain"
+                    title={featuredVideo.title}
+                  />
+                </div>
+                {featuredVideo.title && (
+                  <div className="mt-2 px-1 max-w-[85%] mx-auto">
+                    <p className="text-sm font-medium text-navy-800 truncate text-center">{featuredVideo.title}</p>
+                    <p className="text-xs text-gray-400 mt-0.5 text-center">
+                      {Math.floor(featuredVideo.duration / 60)}:{String(featuredVideo.duration % 60).padStart(2, '0')} · Featured Video
+                    </p>
+                  </div>
+                )}
               </div>
-            )}
+            </div>
           </motion.div>
         ) : (
           <motion.div
