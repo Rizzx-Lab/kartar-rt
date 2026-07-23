@@ -289,4 +289,4 @@ All 6 tasks implemented. The Featured Video Upload feature is fully built.
 - **Cloudinary credentials**: Ensure `CLOUDINARY_URL` (or `CLOUDINARY_CLOUD_NAME`, `CLOUDINARY_API_KEY`, `CLOUDINARY_API_SECRET`) is set in `.env` — without it, uploads and deletions will throw `ConfigurationException`.
   - For Task 6 (Public Display): The gallery page (`frontend/app/galeri/`) needs to call `GET /api/v1/featured-video` and conditionally apply the 3-column layout (desktop) or pinned-top layout (mobile) when `data !== null`. Check `frontend/components/ui/image-gallery.tsx` and `frontend/app/galeri/page.tsx` for where to integrate.
 
-test
+test1
