@@ -124,14 +124,17 @@ function AnimatedGalleryGrid({
     <>
       {/* ===================== DESKTOP LAYOUT (lg+) ===================== */}
       {/* Side-by-side columns: video + photo columns */}
-      <div className="hidden lg:flex justify-center items-stretch gap-4 px-4 lg:px-8 max-w-6xl mx-auto">
+      {/* h-[560px] establishes a fixed viewport height so overflow-hidden clips the scroll animation correctly.
+          translateY(-50%) scrolls exactly one set of photos (column1 photos × 2 total = 2N items = 100% of 2N,
+          50% = N items = one full set entering from bottom). */}
+      <div className="hidden lg:flex justify-center items-stretch gap-4 px-4 lg:px-8 max-w-6xl mx-auto h-[560px]">
         {/* Left photo column */}
         <motion.div
           initial={{ opacity: 0, y: 30 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ duration: 0.5, delay: 0.1 }}
-          className="w-72 shrink-0 overflow-hidden"
+          className="w-72 shrink-0 overflow-hidden h-full"
         >
           <div
             className={`flex flex-col gap-4 ${shouldAutoScroll ? normalClass : ''}`}
@@ -172,14 +175,16 @@ function AnimatedGalleryGrid({
 
             {/* Pinned video overlay — photos scroll behind it */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-              {/* White fade overlay at TOP — photos fade to white as they scroll up behind video */}
-            <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-white/95 to-transparent pointer-events-none z-20" />
-            {/* White fade overlay at BOTTOM — photos fade from transparent to white as they scroll down */}
-            <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white/95 to-transparent pointer-events-none z-20" />
+              {/* Pinned video overlay — photos scroll behind it */}
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+              {/* White fade overlays: z-5 sits between the photo scroll (z-0) and the video card (z-10).
+                  Creates a "cloud" effect — photos fade to white at top/bottom, video floats above. */}
+              <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-white/95 to-transparent pointer-events-none z-5" />
+              <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white/95 to-transparent pointer-events-none z-5" />
 
-            <div className="w-full flex flex-col items-center">
+              <div className="w-full flex flex-col items-center">
                 {/* Card: pointer-events-auto so only the card area blocks clicks, not the margins */}
-                <div className="w-full bg-white rounded-2xl shadow-xl shadow-black/20 ring-1 ring-black/5 pointer-events-auto">
+                <div className="w-full max-w-[95%] bg-white rounded-xl shadow-xl shadow-black/20 ring-1 ring-black/5 pointer-events-auto">
                   <video
                     src={featuredVideo.video_url ?? undefined}
                     autoPlay
@@ -193,7 +198,7 @@ function AnimatedGalleryGrid({
                   />
                 </div>
                 {featuredVideo.title && (
-                  <div className="mt-2 px-1 max-w-[85%] mx-auto">
+                  <div className="mt-2 px-1 max-w-[95%] mx-auto">
                     <p className="text-sm font-medium text-navy-800 truncate text-center">{featuredVideo.title}</p>
                     <p className="text-xs text-gray-400 mt-0.5 text-center">
                       {Math.floor(featuredVideo.duration / 60)}:{String(featuredVideo.duration % 60).padStart(2, '0')} · Featured Video
@@ -209,7 +214,7 @@ function AnimatedGalleryGrid({
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.2 }}
-            className="w-72 shrink-0 overflow-hidden"
+            className="w-72 shrink-0 overflow-hidden h-full"
           >
             <div
               className={`flex flex-col gap-4 ${shouldAutoScroll ? slowClass : ''}`}
@@ -233,7 +238,7 @@ function AnimatedGalleryGrid({
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.3 }}
-            className="w-72 shrink-0 overflow-hidden"
+            className="w-72 shrink-0 overflow-hidden h-full"
           >
             <div
               className={`flex flex-col gap-4 ${shouldAutoScroll ? slowClass : ''}`}
@@ -255,7 +260,7 @@ function AnimatedGalleryGrid({
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.5, delay: 0.3 }}
-            className="w-72 shrink-0 overflow-hidden"
+            className="w-72 shrink-0 overflow-hidden h-full"
           >
             <div
               className={`flex flex-col gap-4 ${shouldAutoScroll ? mediumClass : ''}`}
