@@ -170,7 +170,6 @@ function AnimatedGalleryGrid({
                     src={featuredVideo.video_url ?? undefined}
                     autoPlay
                     controls
-                    muted
                     playsInline
                     loop
                     preload="metadata"
@@ -277,7 +276,6 @@ function AnimatedGalleryGrid({
                 src={featuredVideo.video_url ?? undefined}
                 autoPlay
                 controls
-                muted
                 playsInline
                 loop
                 preload="metadata"
