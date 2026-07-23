@@ -172,9 +172,14 @@ function AnimatedGalleryGrid({
 
             {/* Pinned video overlay — photos scroll behind it */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-              <div className="w-full flex flex-col items-center">
+              {/* White fade overlay at TOP — photos fade to white as they scroll up behind video */}
+            <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-white/95 to-transparent pointer-events-none z-20" />
+            {/* White fade overlay at BOTTOM — photos fade from transparent to white as they scroll down */}
+            <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white/95 to-transparent pointer-events-none z-20" />
+
+            <div className="w-full flex flex-col items-center">
                 {/* Card: pointer-events-auto so only the card area blocks clicks, not the margins */}
-                <div className="w-full max-w-[85%] bg-white rounded-2xl shadow-xl shadow-black/20 ring-1 ring-black/5 pointer-events-auto">
+                <div className="w-full bg-white rounded-2xl shadow-xl shadow-black/20 ring-1 ring-black/5 pointer-events-auto">
                   <video
                     src={featuredVideo.video_url ?? undefined}
                     autoPlay
