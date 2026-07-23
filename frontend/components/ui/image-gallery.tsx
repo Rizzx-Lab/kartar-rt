@@ -124,9 +124,7 @@ function AnimatedGalleryGrid({
     <>
       {/* ===================== DESKTOP LAYOUT (lg+) ===================== */}
       {/* Side-by-side columns: video + photo columns */}
-      {/* h-[560px] establishes a fixed viewport height so overflow-hidden clips the scroll animation correctly.
-          translateY(-50%) scrolls exactly one set of photos (column1 photos × 2 total = 2N items = 100% of 2N,
-          50% = N items = one full set entering from bottom). */}
+      {/* h-[560px] fixed height = viewport clip for translateY(-50%) scroll loop */}
       <div className="hidden lg:flex justify-center items-stretch gap-4 px-4 lg:px-8 max-w-6xl mx-auto h-[560px]">
         {/* Left photo column */}
         <motion.div
@@ -175,10 +173,7 @@ function AnimatedGalleryGrid({
 
             {/* Pinned video overlay — photos scroll behind it */}
             <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-              {/* Pinned video overlay — photos scroll behind it */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
-              {/* White fade overlays: z-5 sits between the photo scroll (z-0) and the video card (z-10).
-                  Creates a "cloud" effect — photos fade to white at top/bottom, video floats above. */}
+              {/* z-5 fade overlays: between photo scroll z-0 and video z-10 = cloud effect */}
               <div className="absolute top-0 left-0 right-0 h-16 bg-gradient-to-b from-white/95 to-transparent pointer-events-none z-5" />
               <div className="absolute bottom-0 left-0 right-0 h-16 bg-gradient-to-t from-white/95 to-transparent pointer-events-none z-5" />
 
