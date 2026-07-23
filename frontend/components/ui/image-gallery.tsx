@@ -179,7 +179,7 @@ function AnimatedGalleryGrid({
 
               <div className="w-full flex flex-col items-center">
                 {/* Card: pointer-events-auto so only the card area blocks clicks, not the margins */}
-                <div className="w-full max-w-[95%] bg-white rounded-xl shadow-xl shadow-black/20 ring-1 ring-black/5 pointer-events-auto">
+                <div className="w-full bg-white rounded-xl shadow-xl shadow-black/20 ring-1 ring-black/5 pointer-events-auto">
                   <video
                     src={featuredVideo.video_url ?? undefined}
                     autoPlay
@@ -193,7 +193,7 @@ function AnimatedGalleryGrid({
                   />
                 </div>
                 {featuredVideo.title && (
-                  <div className="mt-2 px-1 max-w-[95%] mx-auto">
+                  <div className="mt-2 px-1 w-full">
                     <p className="text-sm font-medium text-navy-800 truncate text-center">{featuredVideo.title}</p>
                     <p className="text-xs text-gray-400 mt-0.5 text-center">
                       {Math.floor(featuredVideo.duration / 60)}:{String(featuredVideo.duration % 60).padStart(2, '0')} · Featured Video
