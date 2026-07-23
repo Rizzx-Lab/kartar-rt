@@ -230,6 +230,16 @@ A standalone "featured video" feature for the Gallery page. Admin can upload one
   - **No migrations. Frontend + Laravel backend code deploy.**
   - **Verification:** With this fix deployed, toggle "Auto Scroll Galeri" OFF in admin Pengaturan → visit `/galeri` (no page reload needed) → photos stop scrolling immediately. Toggle it back ON → photos resume. Change the slider from 20s to 60s → scroll speed changes. Works without waiting for ISR revalidation because the backend signals Next.js immediately on save.
 
+- **2026-07-23 — Desktop-only visual fix: 3-column video-active layout column sizing**
+  - **Symptom:** On desktop (`lg:` breakpoint and up), the center video column rendered much narrower/shorter than the side photo columns. The video thumbnail appeared small and the caption sat awkwardly below — visually outclassed by the full-height scrolling photo columns.
+  - **Root cause:** The center video column's inner container was constrained by `min-h-[400px] max-h-[60vh]`, and the `<video>` element used `max-w-full max-h-[60vh] w-auto h-auto` with no explicit aspect-ratio enforcement. A 9:16 portrait video at `w-72` (288px) intrinsic width would only reach ~512px tall — far shorter than the `items-stretch` photo columns that extend across the full viewport height. The caption also used `text-sm`, undersized for a pinned centerpiece.
+  - **Fix — `frontend/components/ui/image-gallery.tsx`, desktop video column only (`hidden lg:flex` branch, `hasVideo` = true):**
+    1. Removed `min-h-[400px] max-h-[60vh]` from the inner video container `<div>` — let the video determine its own natural height.
+    2. Added `aspect-[9/16]` and `w-full` to the `<video>` element; removed `max-h-[60vh]` and `w-auto h-auto` — enforces the 9:16 portrait ratio so the video fills the column width (288px) and reaches a comparable height to the scrolling photo columns.
+    3. Bumped caption title from `text-sm` → `text-base` for proper visual weight as the pinned centerpiece.
+  - **Mobile layout completely untouched** (`lg:hidden` branch unchanged). No changes to scroll behavior, autoplay, data fetching, revalidation, or any non-visual logic.
+  - **Files changed:** `frontend/components/ui/image-gallery.tsx` (desktop video column only). No migrations. No backend changes.
+
 
 
 

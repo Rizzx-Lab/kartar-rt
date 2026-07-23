@@ -156,8 +156,8 @@ function AnimatedGalleryGrid({
             transition={{ duration: 0.5, delay: 0.2 }}
             className="w-72 shrink-0 overflow-hidden"
           >
-            {/* Video Container - Centered vertically with fixed max height */}
-            <div className="flex items-center justify-center min-h-[400px] max-h-[60vh] bg-gray-50 rounded-xl">
+            {/* Video Container — aspect ratio enforces 9:16 portrait, no max-height cap */}
+            <div className="flex items-center justify-center bg-gray-50 rounded-xl">
               <video
                 src={featuredVideo.video_url ?? undefined}
                 autoPlay
@@ -166,13 +166,13 @@ function AnimatedGalleryGrid({
                 playsInline
                 loop
                 preload="metadata"
-                className="max-w-full max-h-[60vh] w-auto h-auto object-contain rounded-xl"
+                className="w-full aspect-[9/16] object-contain rounded-xl"
                 title={featuredVideo.title}
               />
             </div>
             {featuredVideo.title && (
               <div className="mt-3 px-1">
-                <p className="text-sm font-medium text-navy-800 truncate">{featuredVideo.title}</p>
+                <p className="text-base font-medium text-navy-800 truncate">{featuredVideo.title}</p>
                 <p className="text-xs text-gray-400 mt-0.5">
                   {Math.floor(featuredVideo.duration / 60)}:{String(featuredVideo.duration % 60).padStart(2, '0')} · Featured Video
                 </p>
