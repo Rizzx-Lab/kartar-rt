@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Log;
 
 /**
  * Auto-publishes draft announcements whose published_at date has arrived,
- * and unpublishes published announcements whose expires_at date has passed.
+ * and unpublishes published announcements whose expired_at date has passed.
  *
  * Run every minute via Laravel's scheduler (php artisan schedule:run).
  *
@@ -31,12 +31,36 @@ use Illuminate\Support\Facades\Log;
 class PublishDueAnnouncements extends Command
 {
     protected $signature = 'announcements:publish-due';
-    protected $description = 'Publish draft announcements whose published_at has arrived, and unpublish published announcements past their expires_at';
+    protected $description = 'Publish draft announcements whose published_at has arrived, and unpublish published announcements past their expired_at';
 
+    /**
+     * Execute the scheduled command.
+     *
+     * Runs handlePublish() and handleExpire() in independent try/catch blocks
+     * so a failure in one phase does not prevent the other from running.
+     *
+     * @return int Command exit code.
+     */
     public function handle(): int
     {
-        $published = $this->handlePublish();
-        $expired = $this->handleExpire();
+        $published = 0;
+        $expired   = 0;
+
+        try {
+            $published = $this->handlePublish();
+        } catch (\Throwable $e) {
+            Log::error('announcements:publish-due handlePublish failed: ' . $e->getMessage(), [
+                'exception' => $e,
+            ]);
+        }
+
+        try {
+            $expired = $this->handleExpire();
+        } catch (\Throwable $e) {
+            Log::error('announcements:publish-due handleExpire failed: ' . $e->getMessage(), [
+                'exception' => $e,
+            ]);
+        }
 
         // Only output "Done." when there was actual work (or both were skipped silently via --quiet)
         if (!$this->option('quiet') && $published === 0 && $expired === 0) {
@@ -48,6 +72,8 @@ class PublishDueAnnouncements extends Command
 
     /**
      * Find and publish draft announcements whose published_at has arrived.
+     *
+     * @return int Number of announcements published.
      */
     protected function handlePublish(): int
     {
@@ -72,13 +98,15 @@ class PublishDueAnnouncements extends Command
     }
 
     /**
-     * Find and unpublish published announcements whose expires_at has passed.
+     * Find and unpublish published announcements whose expired_at has passed.
+     *
+     * @return int Number of announcements unpublished.
      */
     protected function handleExpire(): int
     {
         $expiredAnnouncements = Announcement::where('is_published', true)
-            ->whereNotNull('expires_at')
-            ->where('expires_at', '<=', now())
+            ->whereNotNull('expired_at')
+            ->where('expired_at', '<=', now())
             ->get();
 
         if ($expiredAnnouncements->isEmpty()) {

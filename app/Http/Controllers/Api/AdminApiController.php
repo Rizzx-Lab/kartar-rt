@@ -369,6 +369,15 @@ class AdminApiController extends Controller
         return response()->json(['success' => true, 'data' => $announcements]);
     }
 
+    /**
+     * Store a new announcement.
+     *
+     * Validates the request, derives publish status from `published_at`, and
+     * saves `expired_at` (the real DB column) from the `expired_at` form field.
+     *
+     * @param  \Illuminate\Http\Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function announcementStore(Request $request): JsonResponse
     {
         Log::info('announcementStore: START', ['user_id' => auth()->id()]);
@@ -379,7 +388,7 @@ class AdminApiController extends Controller
                 'content' => 'required|string',
                 'excerpt' => 'nullable|string|max:250',
                 'published_at' => 'required|date|after_or_equal:today',
-                'expires_at' => 'nullable|date|after:published_at|after_or_equal:today',
+                'expired_at' => 'nullable|date|after:published_at|after_or_equal:today',
                 'image' => 'nullable|image|max:2048',
             ]);
 
@@ -413,10 +422,10 @@ class AdminApiController extends Controller
             }
             // Past dates are rejected by the validation rule above.
 
-            // Handle expires_at: null if empty (no expiry), otherwise keep the validated date.
+            // Handle expired_at: null if empty (no expiry), otherwise keep the validated date.
             // Empty string from FormData is coerced to null so the DB sees NULL not ''.
-            $expiresAt = $request->input('expires_at');
-            $data['expires_at'] = ($expiresAt !== null && $expiresAt !== '') ? $expiresAt : null;
+            $expiredAt = $request->input('expired_at');
+            $data['expired_at'] = ($expiredAt !== null && $expiredAt !== '') ? $expiredAt : null;
 
             Log::info('announcementStore: processed fields', [
                 'is_pinned' => $data['is_pinned'],
@@ -469,6 +478,16 @@ class AdminApiController extends Controller
         }
     }
 
+    /**
+     * Update an existing announcement.
+     *
+     * Validates the request, re-derives publish status from `published_at`, and
+     * saves `expired_at` (the real DB column) from the `expired_at` form field.
+     *
+     * @param  \Illuminate\Http\Request $request
+     * @param  int                      $id
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function announcementUpdate(Request $request, int $id): JsonResponse
     {
         Log::info('announcementUpdate: START', ['id' => $id, 'user_id' => auth()->id()]);
@@ -482,7 +501,7 @@ class AdminApiController extends Controller
                 'content' => 'required|string',
                 'excerpt' => 'nullable|string|max:250',
                 'published_at' => 'required|date|after_or_equal:today',
-                'expires_at' => 'nullable|date|after:published_at|after_or_equal:today',
+                'expired_at' => 'nullable|date|after:published_at|after_or_equal:today',
                 'image' => 'nullable|image|max:2048',
                 'remove_image' => 'nullable|boolean',
             ]);
@@ -512,9 +531,9 @@ class AdminApiController extends Controller
             }
             // Past dates are rejected by the validation rule above.
 
-            // Handle expires_at: null if empty (no expiry), otherwise keep the validated date.
-            $expiresAt = $request->input('expires_at');
-            $data['expires_at'] = ($expiresAt !== null && $expiresAt !== '') ? $expiresAt : null;
+            // Handle expired_at: null if empty (no expiry), otherwise keep the validated date.
+            $expiredAt = $request->input('expired_at');
+            $data['expired_at'] = ($expiredAt !== null && $expiredAt !== '') ? $expiredAt : null;
 
             // Handle new image upload
             if ($request->hasFile('image')) {
