@@ -157,6 +157,19 @@ export async function deleteAnnouncement(id: number) {
   });
 }
 
+export async function archiveAnnouncement(id: number) {
+  return adminFetch<any>(`/admin/announcements/${id}/archive`, {
+    method: 'POST',
+  });
+}
+
+export async function reactivateAnnouncement(id: number, expiredAt?: string | null) {
+  return adminFetch<any>(`/admin/announcements/${id}/reactivate`, {
+    method: 'POST',
+    body: JSON.stringify({ expired_at: expiredAt || null }),
+  });
+}
+
 // ========================
 // GALLERIES
 // ========================

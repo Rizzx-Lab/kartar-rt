@@ -1,9 +1,17 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { getAnnouncements, createAnnouncement, updateAnnouncement, deleteAnnouncement } from '@/lib/admin-api';
+import { useState, useEffect, useMemo } from 'react';
+import {
+  getAnnouncements,
+  createAnnouncement,
+  updateAnnouncement,
+  deleteAnnouncement,
+  archiveAnnouncement,
+  reactivateAnnouncement,
+} from '@/lib/admin-api';
 import { X, Image as ImageIcon } from 'lucide-react';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
+import { useAuth } from '@/contexts/AuthContext';
 
 interface Announcement {
   id: number;
@@ -15,6 +23,7 @@ interface Announcement {
   is_published: boolean;
   published_at: string;
   expired_at: string | null;
+  status: 'active' | 'scheduled' | 'archived';
   created_at: string;
   image_url?: string | null;
   image_public_id?: string | null;
@@ -29,7 +38,10 @@ interface FormData {
   expired_at: string;
 }
 
+type TabType = 'all' | 'active' | 'scheduled' | 'archived';
+
 export default function AdminAnnouncementsPage() {
+  const { user } = useAuth();
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -43,7 +55,9 @@ export default function AdminAnnouncementsPage() {
     expired_at: '',
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isActionSubmitting, setIsActionSubmitting] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [activeTab, setActiveTab] = useState<TabType>('active');
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 5;
 
@@ -51,10 +65,45 @@ export default function AdminAnnouncementsPage() {
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [removeImage, setRemoveImage] = useState(false);
+
+  // Modals state
+  const [archiveModal, setArchiveModal] = useState<{ isOpen: boolean; id: number | null }>({
+    isOpen: false,
+    id: null,
+  });
+  const [reactivateModal, setReactivateModal] = useState<{
+    isOpen: boolean;
+    id: number | null;
+    expiredAt: string;
+    error: string | null;
+  }>({
+    isOpen: false,
+    id: null,
+    expiredAt: '',
+    error: null,
+  });
   const [deleteModal, setDeleteModal] = useState<{ isOpen: boolean; id: number | null }>({
     isOpen: false,
     id: null,
   });
+
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+
+  const showToast = (message: string, type: 'success' | 'error') => {
+    setToast({ message, type });
+    setTimeout(() => {
+      setToast((prev) => (prev?.message === message ? null : prev));
+    }, 4000);
+  };
+
+  const getTomorrowLocalDateString = (): string => {
+    const d = new Date();
+    d.setDate(d.getDate() + 1);
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  };
 
   useEffect(() => {
     fetchAnnouncements();
@@ -99,6 +148,15 @@ export default function AdminAnnouncementsPage() {
     setImagePreview(null);
     setRemoveImage(false);
     setShowModal(true);
+  };
+
+  const openReactivateModal = (id: number) => {
+    setReactivateModal({
+      isOpen: true,
+      id,
+      expiredAt: '',
+      error: null,
+    });
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -148,25 +206,102 @@ export default function AdminAnnouncementsPage() {
     if (response.success) {
       setShowModal(false);
       fetchAnnouncements();
+      showToast(
+        editingAnnouncement ? 'Pengumuman berhasil diperbarui.' : 'Pengumuman berhasil dibuat.',
+        'success'
+      );
     } else {
-      alert(response.message || 'Terjadi kesalahan');
+      showToast(response.message || 'Terjadi kesalahan', 'error');
     }
     setIsSubmitting(false);
   };
 
-  const handleDelete = async (id: number) => {
+  const handleArchive = async () => {
+    if (isActionSubmitting || !archiveModal.id) return;
+    setIsActionSubmitting(true);
+    const id = archiveModal.id;
+    setArchiveModal({ isOpen: false, id: null });
+    const response = await archiveAnnouncement(id);
+    if (response.success) {
+      showToast(response.message || 'Pengumuman berhasil diarsipkan.', 'success');
+      fetchAnnouncements();
+    } else {
+      showToast(response.message || 'Gagal mengarsipkan pengumuman.', 'error');
+    }
+    setIsActionSubmitting(false);
+  };
+
+  const handleReactivateSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (isActionSubmitting || !reactivateModal.id) return;
+
+    setIsActionSubmitting(true);
+    setReactivateModal((prev) => ({ ...prev, error: null }));
+
+    const response = await reactivateAnnouncement(
+      reactivateModal.id,
+      reactivateModal.expiredAt || null
+    );
+
+    if (response.success) {
+      setReactivateModal({ isOpen: false, id: null, expiredAt: '', error: null });
+      showToast(response.message || 'Pengumuman berhasil diaktifkan kembali.', 'success');
+      fetchAnnouncements();
+    } else {
+      const errMsg = response.message || 'Gagal mengaktifkan kembali pengumuman.';
+      setReactivateModal((prev) => ({ ...prev, error: errMsg }));
+      showToast(errMsg, 'error');
+    }
+    setIsActionSubmitting(false);
+  };
+
+  const handleDelete = async () => {
+    if (isActionSubmitting || !deleteModal.id) return;
+    setIsActionSubmitting(true);
+    const id = deleteModal.id;
     setDeleteModal({ isOpen: false, id: null });
     const response = await deleteAnnouncement(id);
     if (response.success) {
+      showToast(response.message || 'Pengumuman berhasil dihapus secara permanen.', 'success');
       fetchAnnouncements();
     } else {
-      alert(response.message || 'Gagal menghapus');
+      showToast(response.message || 'Gagal menghapus pengumuman.', 'error');
     }
+    setIsActionSubmitting(false);
   };
 
-  const filteredAnnouncements = announcements.filter((a) =>
-    a.title.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const tabs: { key: TabType; label: string }[] = [
+    { key: 'all', label: 'Semua' },
+    { key: 'active', label: 'Aktif' },
+    { key: 'scheduled', label: 'Terjadwal' },
+    { key: 'archived', label: 'Arsip' },
+  ];
+
+  const counts = useMemo(() => {
+    return {
+      all: announcements.length,
+      active: announcements.filter((a) => a.status === 'active').length,
+      scheduled: announcements.filter((a) => a.status === 'scheduled').length,
+      archived: announcements.filter((a) => a.status === 'archived').length,
+    };
+  }, [announcements]);
+
+  const handleTabChange = (tab: TabType) => {
+    setActiveTab(tab);
+    setCurrentPage(1);
+  };
+
+  const filteredAnnouncements = useMemo(() => {
+    return announcements.filter((a) => {
+      if (activeTab !== 'all' && a.status !== activeTab) {
+        return false;
+      }
+      if (searchQuery.trim() && !a.title.toLowerCase().includes(searchQuery.toLowerCase())) {
+        return false;
+      }
+      return true;
+    });
+  }, [announcements, activeTab, searchQuery]);
 
   const paginatedAnnouncements = filteredAnnouncements.slice(
     (currentPage - 1) * itemsPerPage,
@@ -191,6 +326,32 @@ export default function AdminAnnouncementsPage() {
           </svg>
           Buat Pengumuman
         </button>
+      </div>
+
+      {/* Tabs */}
+      <div className="flex flex-wrap items-center gap-2">
+        {tabs.map((tab) => (
+          <button
+            key={tab.key}
+            onClick={() => handleTabChange(tab.key)}
+            className={`flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+              activeTab === tab.key
+                ? 'bg-navy-800 text-white shadow-sm'
+                : 'text-gray-600 hover:bg-gray-100 bg-white'
+            }`}
+          >
+            <span>{tab.label}</span>
+            <span
+              className={`px-2 py-0.5 text-xs font-semibold rounded-full ${
+                activeTab === tab.key
+                  ? 'bg-white/20 text-white'
+                  : 'bg-gray-100 text-gray-600'
+              }`}
+            >
+              {counts[tab.key]}
+            </span>
+          </button>
+        ))}
       </div>
 
       {/* Search */}
@@ -256,6 +417,21 @@ export default function AdminAnnouncementsPage() {
                           Ada Gambar
                         </span>
                       )}
+                      {announcement.status === 'active' && (
+                        <span className="px-2 py-1 bg-green-100 text-green-700 text-xs font-medium rounded">
+                          Aktif
+                        </span>
+                      )}
+                      {announcement.status === 'scheduled' && (
+                        <span className="px-2 py-1 bg-amber-100 text-amber-700 text-xs font-medium rounded">
+                          Terjadwal
+                        </span>
+                      )}
+                      {announcement.status === 'archived' && (
+                        <span className="px-2 py-1 bg-slate-100 text-slate-700 text-xs font-medium rounded">
+                          Arsip
+                        </span>
+                      )}
                     </div>
                     <h3 className="font-semibold text-navy-800">{announcement.title}</h3>
                     <p className="text-sm text-gray-600 line-clamp-2 mt-1">
@@ -270,20 +446,46 @@ export default function AdminAnnouncementsPage() {
                         })}
                       </span>
                       <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => openEditModal(announcement)}
-                          className="px-3 py-1 text-sm text-gold-600 hover:bg-gold-50 rounded-lg transition-colors"
-                        >
-                          Edit
-                        </button>
-                        <button
-                          onClick={() => setDeleteModal({ isOpen: true, id: announcement.id })}
-                          className="p-2 text-red-500 hover:bg-red-50 rounded-lg"
-                        >
-                          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m-7-3V5a2 2 0 012-2h3.5" />
-                          </svg>
-                        </button>
+                        {announcement.status !== 'archived' ? (
+                          <>
+                            <button
+                              onClick={() => openEditModal(announcement)}
+                              disabled={isActionSubmitting}
+                              className="px-3 py-1 text-sm text-gold-600 hover:bg-gold-50 rounded-lg transition-colors disabled:opacity-50"
+                            >
+                              Edit
+                            </button>
+                            <button
+                              onClick={() => setArchiveModal({ isOpen: true, id: announcement.id })}
+                              disabled={isActionSubmitting}
+                              className="px-3 py-1 text-sm text-amber-600 hover:bg-amber-50 rounded-lg transition-colors disabled:opacity-50"
+                            >
+                              Arsipkan
+                            </button>
+                          </>
+                        ) : (
+                          <>
+                            <button
+                              onClick={() => openReactivateModal(announcement.id)}
+                              disabled={isActionSubmitting}
+                              className="px-3 py-1 text-sm text-green-600 hover:bg-green-50 rounded-lg transition-colors disabled:opacity-50"
+                            >
+                              Aktifkan Kembali
+                            </button>
+                            {user?.role === 'super_admin' && (
+                              <button
+                                onClick={() => setDeleteModal({ isOpen: true, id: announcement.id })}
+                                disabled={isActionSubmitting}
+                                title="Hapus Permanen"
+                                className="p-2 text-red-500 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                              >
+                                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m-7-3V5a2 2 0 012-2h3.5" />
+                                </svg>
+                              </button>
+                            )}
+                          </>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -324,17 +526,29 @@ export default function AdminAnnouncementsPage() {
           <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5.882V19.24c0-1.104 1.118-1.94 2.117-1.855 2.478v1.268c-.063.534-.117 1.05-.154 1.54M5 12.14S17 11 17 11s-.755-.96-.755-1.861C16.245 9.568 15.763 9 15 9s-1.23.568-1.23.568S2 11 2 15s1.755 4.14 1.755 4.14" />
           </svg>
-          <p className="text-gray-500">Belum ada pengumuman. Buat pengumuman pertama.</p>
-          <button
-            onClick={openCreateModal}
-            className="mt-4 px-4 py-2 bg-gold-500 hover:bg-gold-600 text-navy-900 font-medium rounded-lg"
-          >
-            Buat Pengumuman
-          </button>
+          <p className="text-gray-500">
+            {searchQuery.trim()
+              ? `Tidak ada pengumuman yang cocok dengan "${searchQuery}".`
+              : activeTab === 'active'
+              ? 'Tidak ada pengumuman aktif saat ini.'
+              : activeTab === 'scheduled'
+              ? 'Tidak ada pengumuman terjadwal.'
+              : activeTab === 'archived'
+              ? 'Tidak ada pengumuman di arsip.'
+              : 'Belum ada pengumuman. Buat pengumuman pertama.'}
+          </p>
+          {(activeTab === 'all' || activeTab === 'active') && !searchQuery.trim() && (
+            <button
+              onClick={openCreateModal}
+              className="mt-4 px-4 py-2 bg-gold-500 hover:bg-gold-600 text-navy-900 font-medium rounded-lg"
+            >
+              Buat Pengumuman
+            </button>
+          )}
         </div>
       )}
 
-      {/* Modal */}
+      {/* Modal Create/Edit */}
       {showModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50" onClick={() => setShowModal(false)} />
@@ -499,16 +713,113 @@ export default function AdminAnnouncementsPage() {
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
+      {/* Archive Confirmation Modal */}
+      <ConfirmModal
+        isOpen={archiveModal.isOpen}
+        title="Arsipkan Pengumuman"
+        message="Pengumuman akan ditarik dari situs publik, dipindahkan ke tab Arsip, dan dapat diaktifkan kembali sewaktu-waktu."
+        confirmText="Arsipkan"
+        cancelText="Batal"
+        onConfirm={handleArchive}
+        onCancel={() => setArchiveModal({ isOpen: false, id: null })}
+      />
+
+      {/* Reactivate Modal */}
+      {reactivateModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => !isActionSubmitting && setReactivateModal({ isOpen: false, id: null, expiredAt: '', error: null })}
+          />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+              <h3 className="text-lg font-bold text-navy-800">Aktifkan Kembali</h3>
+              <button
+                type="button"
+                disabled={isActionSubmitting}
+                onClick={() => setReactivateModal({ isOpen: false, id: null, expiredAt: '', error: null })}
+                className="p-2 hover:bg-gray-100 rounded-lg transition-colors text-gray-400 disabled:opacity-50"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <form onSubmit={handleReactivateSubmit} className="p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Tanggal Berakhir <span className="text-gray-400 font-normal">(opsional)</span>
+                </label>
+                <input
+                  type="date"
+                  value={reactivateModal.expiredAt}
+                  min={getTomorrowLocalDateString()}
+                  onChange={(e) =>
+                    setReactivateModal((prev) => ({ ...prev, expiredAt: e.target.value, error: null }))
+                  }
+                  disabled={isActionSubmitting}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-gold-500 focus:border-gold-500 text-sm disabled:opacity-50"
+                />
+                <p className="mt-1.5 text-xs text-gray-500 leading-relaxed">
+                  Kosongkan jika tanpa tanggal berakhir
+                </p>
+                {reactivateModal.error && (
+                  <div className="mt-2 p-2.5 bg-red-50 border border-red-200 rounded-lg text-xs text-red-600">
+                    {reactivateModal.error}
+                  </div>
+                )}
+              </div>
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="button"
+                  disabled={isActionSubmitting}
+                  onClick={() => setReactivateModal({ isOpen: false, id: null, expiredAt: '', error: null })}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 font-medium rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                >
+                  Batal
+                </button>
+                <button
+                  type="submit"
+                  disabled={isActionSubmitting}
+                  className="flex-1 px-4 py-2 bg-gold-500 hover:bg-gold-600 text-navy-900 font-medium rounded-lg transition-colors disabled:opacity-50"
+                >
+                  {isActionSubmitting ? 'Mengaktifkan...' : 'Aktifkan Kembali'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal (Archived Only & super_admin only) */}
       <ConfirmModal
         isOpen={deleteModal.isOpen}
-        title="Hapus Pengumuman"
-        message="Yakin ingin menghapus pengumuman ini? Aksi ini tidak dapat dibatalkan."
-        confirmText="Hapus"
-        onConfirm={() => deleteModal.id && handleDelete(deleteModal.id)}
+        title="Hapus Permanen Pengumuman"
+        message="Pengumuman akan dihapus secara permanen beserta gambarnya dari Cloudinary. Tindakan ini tidak dapat dibatalkan."
+        confirmText="Hapus Permanen"
+        cancelText="Batal"
+        onConfirm={handleDelete}
         onCancel={() => setDeleteModal({ isOpen: false, id: null })}
         danger
       />
+
+      {/* Toast Notification */}
+      {toast && (
+        <div
+          className={`fixed bottom-4 right-4 px-4 py-3 rounded-lg shadow-lg z-50 flex items-center gap-2 ${
+            toast.type === 'success' ? 'bg-green-500 text-white' : 'bg-red-500 text-white'
+          }`}
+        >
+          {toast.type === 'success' ? (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+            </svg>
+          ) : (
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          )}
+          <span className="text-sm font-medium">{toast.message}</span>
+        </div>
+      )}
     </div>
   );
 }
