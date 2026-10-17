@@ -72,6 +72,8 @@ class PublishDueAnnouncements extends Command
 
     /**
      * Find and publish draft announcements whose published_at has arrived.
+     * Excludes announcements whose expired_at has already passed (expired_at <= now())
+     * to prevent flapping between publishing and expiring.
      *
      * @return int Number of announcements published.
      */
@@ -80,6 +82,10 @@ class PublishDueAnnouncements extends Command
         $dueAnnouncements = Announcement::where('is_published', false)
             ->whereNotNull('published_at')
             ->where('published_at', '<=', now())
+            ->where(function ($query) {
+                $query->whereNull('expired_at')
+                    ->orWhere('expired_at', '>', now());
+            })
             ->get();
 
         if ($dueAnnouncements->isEmpty()) {
@@ -145,11 +151,17 @@ class PublishDueAnnouncements extends Command
     }
 
     /**
-     * Unpublish an expired announcement (flip is_published → false).
+     * Unpublish an expired announcement (flip is_published → false and is_pinned → false).
+     *
+     * @param  \App\Models\Announcement $announcement
+     * @return void
      */
     protected function expireAnnouncement(Announcement $announcement): void
     {
-        $announcement->update(['is_published' => false]);
+        $announcement->update([
+            'is_published' => false,
+            'is_pinned'    => false,
+        ]);
 
         $this->info("  ✓ Unpublished (expired): [ID {$announcement->id}] {$announcement->title}");
 

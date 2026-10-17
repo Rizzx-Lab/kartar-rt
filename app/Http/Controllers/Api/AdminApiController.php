@@ -360,11 +360,21 @@ class AdminApiController extends Controller
     // ==========================================
     // ANNOUNCEMENTS
     // ==========================================
+    /**
+     * List all announcements for the admin panel.
+     *
+     * Returns all announcements ordered by pinned status and publication date,
+     * with the derived `status` appended to each item.
+     *
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function announcements(): JsonResponse
     {
         $announcements = Announcement::orderBy('is_pinned', 'desc')
             ->orderBy('published_at', 'desc')
             ->get();
+
+        $announcements->each(fn (Announcement $announcement) => $announcement->append('status'));
 
         return response()->json(['success' => true, 'data' => $announcements]);
     }
@@ -588,9 +598,117 @@ class AdminApiController extends Controller
         }
     }
 
+    /**
+     * Archive an announcement manually.
+     *
+     * Allowed only when status is active or scheduled. If already archived, returns 422.
+     * Sets expired_at = now(), is_published = false, and is_pinned = false.
+     * Invalidates caches and triggers frontend ISR revalidation.
+     *
+     * @param  int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function announcementArchive(int $id): JsonResponse
+    {
+        $announcement = Announcement::findOrFail($id);
+
+        if ($announcement->status === 'archived') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pengumuman sudah dalam status arsip.',
+            ], 422);
+        }
+
+        $announcement->update([
+            'expired_at'   => now(),
+            'is_published' => false,
+            'is_pinned'    => false,
+        ]);
+
+        // Invalidate all announcement-related caches using the shared helper
+        $this->invalidateAnnouncementCaches($announcement->slug);
+
+        // Trigger on-demand ISR revalidation on the Next.js frontend
+        $this->triggerFrontendRevalidation(['/pengumuman', '/'], ['announcements', 'home']);
+
+        return response()->json([
+            'success' => true,
+            'data'    => $announcement->append('status'),
+            'message' => 'Pengumuman berhasil diarsipkan.',
+        ]);
+    }
+
+    /**
+     * Reactivate an archived announcement.
+     *
+     * Allowed only when status is archived; otherwise returns 422.
+     * Accepts optional expired_at (must be strictly after today).
+     * Sets published_at = now(), is_published = true, expired_at = input or null,
+     * and keeps is_pinned = false.
+     * Invalidates caches and triggers frontend ISR revalidation.
+     *
+     * @param  \Illuminate\Http\Request $request
+     * @param  int                      $id
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function announcementReactivate(Request $request, int $id): JsonResponse
+    {
+        $announcement = Announcement::findOrFail($id);
+
+        if ($announcement->status !== 'archived') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Hanya pengumuman yang diarsipkan yang dapat diaktifkan kembali.',
+            ], 422);
+        }
+
+        $request->validate([
+            'expired_at' => 'nullable|date|after:today',
+        ]);
+
+        $expiredAt = $request->input('expired_at');
+        $expiredAt = ($expiredAt !== null && $expiredAt !== '') ? $expiredAt : null;
+
+        $announcement->update([
+            'published_at' => now(),
+            'is_published' => true,
+            'expired_at'   => $expiredAt,
+            'is_pinned'    => false,
+        ]);
+
+        // Invalidate all announcement-related caches using the shared helper
+        $this->invalidateAnnouncementCaches($announcement->slug);
+
+        // Trigger on-demand ISR revalidation on the Next.js frontend
+        $this->triggerFrontendRevalidation(['/pengumuman', '/'], ['announcements', 'home']);
+
+        return response()->json([
+            'success' => true,
+            'data'    => $announcement->append('status'),
+            'message' => 'Pengumuman berhasil diaktifkan kembali.',
+        ]);
+    }
+
+    /**
+     * Permanently delete an announcement.
+     *
+     * Allowed only for archived announcements (otherwise returns 422).
+     * Route is protected by the superadmin middleware.
+     *
+     * @param  int $id
+     * @return \Illuminate\Http\JsonResponse
+     */
     public function announcementDestroy(int $id): JsonResponse
     {
         $announcement = Announcement::findOrFail($id);
+
+        if ($announcement->status !== 'archived') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Pengumuman harus diarsipkan terlebih dahulu sebelum dapat dihapus.',
+            ], 422);
+        }
+
         $slug = $announcement->slug; // Capture before deletion
 
         // Delete image from Cloudinary if exists

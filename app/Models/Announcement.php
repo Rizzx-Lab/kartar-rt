@@ -42,5 +42,27 @@ class Announcement extends Model
         return $q->where('is_pinned', true);
     }
 
+    /**
+     * Get the derived status of the announcement.
+     *
+     * - archived  : expired_at IS NOT NULL AND expired_at <= now()
+     * - active    : not archived AND is_published = true AND published_at IS NOT NULL AND published_at <= now()
+     * - scheduled : everything else (not published yet and not expired)
+     *
+     * @return string 'active'|'scheduled'|'archived'
+     */
+    public function getStatusAttribute(): string
+    {
+        if ($this->expired_at !== null && $this->expired_at->lte(now())) {
+            return 'archived';
+        }
+
+        if ($this->is_published && $this->published_at !== null && $this->published_at->lte(now())) {
+            return 'active';
+        }
+
+        return 'scheduled';
+    }
+
     public function getRouteKeyName() { return 'slug'; }
 }

@@ -73,7 +73,9 @@ Route::prefix('v1')->name('api.')->group(function () {
         Route::get('/admin/announcements', [AdminApiController::class, 'announcements'])->name('admin.announcements.index');
         Route::post('/admin/announcements', [AdminApiController::class, 'announcementStore'])->name('admin.announcements.store');
         Route::put('/admin/announcements/{id}', [AdminApiController::class, 'announcementUpdate'])->name('admin.announcements.update');
-        Route::delete('/admin/announcements/{id}', [AdminApiController::class, 'announcementDestroy'])->name('admin.announcements.destroy');
+        Route::post('/admin/announcements/{id}/archive', [AdminApiController::class, 'announcementArchive'])->name('admin.announcements.archive');
+        Route::post('/admin/announcements/{id}/reactivate', [AdminApiController::class, 'announcementReactivate'])->name('admin.announcements.reactivate');
+        Route::delete('/admin/announcements/{id}', [AdminApiController::class, 'announcementDestroy'])->middleware('superadmin')->name('admin.announcements.destroy');
 
         // Galleries
         Route::get('/admin/galleries', [AdminApiController::class, 'galleries'])->name('admin.galleries.index');
