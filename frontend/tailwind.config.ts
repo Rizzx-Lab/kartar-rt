@@ -20,10 +20,13 @@ const config: Config = {
           900: '#111D4A',
         },
         gold: {
+          50:  '#FDF8EB',
+          100: '#F5E8C7',
           300: '#E8CC7A',
           400: '#D4B05A',
           500: '#C9A84C',
           600: '#B8903A',
+          700: '#8F6825',
         }
       },
       fontFamily: {
