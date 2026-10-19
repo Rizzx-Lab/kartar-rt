@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -95,6 +95,7 @@ export default function AdminLayoutClient({
   const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<any[]>([]);
+  const mainRef = useRef<HTMLElement>(null);
 
   const navItems = allNavItems.filter(item => {
     if (item.superAdminOnly) {
@@ -103,7 +104,7 @@ export default function AdminLayoutClient({
     return true;
   });
 
-  // Fetch notifications
+  // Fetch notifications on authentication and route change to keep badge count fresh
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
@@ -119,7 +120,7 @@ export default function AdminLayoutClient({
     if (isAuthenticated) {
       fetchNotifications();
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, pathname]);
 
   // Subscribe to push notifications when authenticated
   useEffect(() => {
@@ -190,6 +191,18 @@ export default function AdminLayoutClient({
     document.addEventListener('click', handleClickOutside);
     return () => document.removeEventListener('click', handleClickOutside);
   }, [showNotifications]);
+
+  // Close notification dropdown when navigating to a new route
+  useEffect(() => {
+    setShowNotifications(false);
+  }, [pathname]);
+
+  // Scroll main content container to top when navigating to a new route
+  useEffect(() => {
+    if (mainRef.current) {
+      mainRef.current.scrollTop = 0;
+    }
+  }, [pathname]);
 
   const handleLogout = async () => {
     await unsubscribe();
@@ -372,7 +385,7 @@ export default function AdminLayoutClient({
           </div>
         </header>
 
-        <main className="flex-1 p-4 md:p-6 overflow-auto">
+        <main ref={mainRef} className="flex-1 p-4 md:p-6 overflow-auto">
           {children}
         </main>
       </div>

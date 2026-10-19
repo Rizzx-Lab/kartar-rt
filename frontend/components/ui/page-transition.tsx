@@ -31,8 +31,19 @@ const pageVariants = {
   },
 };
 
+/**
+ * PageTransition handles page transition animations for public routes.
+ * Admin routes ('/admin*') bypass animations and motion wrappers completely so that
+ * the persistent admin layout shell (sidebar and header) does not unmount or flicker.
+ */
 export function PageTransition({ children }: PageTransitionProps) {
   const pathname = usePathname();
+
+  // Admin routes bypass PageTransition completely: render children directly with no motion wrapper,
+  // no key, and no animation to prevent unmounting/remounting the persistent admin layout.
+  if (pathname?.startsWith('/admin')) {
+    return <>{children}</>;
+  }
 
   return (
     <AnimatePresence mode="wait" initial={false}>
