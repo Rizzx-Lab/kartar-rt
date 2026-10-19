@@ -6,6 +6,8 @@ import { usePathname, useRouter } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAuth } from '@/contexts/AuthContext';
 import { PWAInstallPrompt } from '@/components/ui/pwa-install-prompt';
+import { AdminToastProvider } from '@/components/admin/admin-toast';
+import { BottomNav } from '@/components/admin/bottom-nav';
 import {
   LayoutDashboard,
   Calendar,
@@ -55,7 +57,7 @@ const CollapsibleSection = ({
     <div className="mb-1">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between py-2.5 px-4 rounded-lg hover:bg-white/10 text-gray-400 hover:text-white transition-colors"
+        className="w-full flex items-center justify-between py-2.5 px-4 rounded-lg hover:bg-navy-700/60 text-gray-400 hover:text-white transition-colors"
       >
         <span className="font-medium text-sm">{title}</span>
         <motion.div
@@ -222,7 +224,7 @@ export default function AdminLayoutClient({
           animate={{ opacity: 1, scale: 1 }}
           className="text-center"
         >
-          <div className="w-16 h-16 border-4 border-amber-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <div className="w-16 h-16 border-4 border-gold-500 border-t-transparent rounded-full animate-spin mx-auto mb-4" />
           <p className="text-gray-500 font-medium">Memuat...</p>
         </motion.div>
       </div>
@@ -235,8 +237,26 @@ export default function AdminLayoutClient({
 
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
+  /** Bottom-nav route tabs — all four are available to every role (not superAdminOnly). */
+  const bottomNavItems = [
+    { href: '/admin/dashboard', label: 'Dashboard', icon: LayoutDashboard },
+    { href: '/admin/announcements', label: 'Pengumuman', icon: Megaphone },
+    { href: '/admin/galleries', label: 'Galeri', icon: Image },
+    { href: '/admin/contacts', label: 'Kontak', icon: Mail },
+  ];
+
   return (
-    <div className="flex h-screen bg-gray-100">
+    // Toast provider wraps the authenticated shell so the toast container inherits
+    // the --admin-bottom-nav-height CSS variable set on the inner div below.
+    // Login and loading branches intentionally do NOT include this provider.
+    <AdminToastProvider>
+      {/* CSS variable: 4rem on mobile, overridden to 0px at md+ via BottomNav's md:hidden */}
+      <div
+        className="flex h-screen bg-gray-100"
+        style={{
+          ['--admin-bottom-nav-height' as string]: '4rem',
+        } as React.CSSProperties}
+      >
       {/* Mobile Sidebar Overlay */}
       <AnimatePresence>
         {isMobileOpen && (
@@ -253,7 +273,7 @@ export default function AdminLayoutClient({
               animate={{ x: 0 }}
               exit={{ x: '-100%' }}
               transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-              className="md:hidden fixed left-0 top-0 bottom-0 w-72 bg-gray-900 text-white z-50 flex flex-col overflow-hidden"
+              className="md:hidden fixed left-0 top-0 bottom-0 w-72 bg-navy-900 text-white z-50 flex flex-col overflow-hidden"
             >
               <SidebarContent
                 user={user}
@@ -261,6 +281,7 @@ export default function AdminLayoutClient({
                 navItems={navItems}
                 onClose={() => setIsMobileOpen(false)}
                 onLogout={() => setShowLogoutConfirm(true)}
+                drawerCloseLabel="Tutup menu"
               />
             </motion.aside>
           </>
@@ -268,7 +289,7 @@ export default function AdminLayoutClient({
       </AnimatePresence>
 
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex flex-col fixed top-0 left-0 h-full w-64 bg-gray-900 text-white z-30 overflow-hidden">
+      <aside className="hidden md:flex flex-col fixed top-0 left-0 h-full w-64 bg-navy-900 text-white z-30 overflow-hidden">
         <SidebarContent
           user={user}
           pathname={pathname}
@@ -288,12 +309,13 @@ export default function AdminLayoutClient({
           <div className="flex items-center gap-3">
             <button
               onClick={() => setIsMobileOpen(true)}
+              aria-label="Buka menu"
               className="md:hidden p-2 hover:bg-gray-100 rounded-lg transition-colors"
             >
               <Menu className="w-5 h-5 text-gray-600" />
             </button>
             <div className="hidden md:flex items-center gap-2 text-sm text-gray-500">
-              <Link href="/" className="hover:text-amber-600 transition-colors">Beranda</Link>
+              <Link href="/" className="hover:text-gold-600 transition-colors">Beranda</Link>
               <span className="text-gray-300">/</span>
               <span className="text-gray-700">Admin</span>
             </div>
@@ -308,6 +330,8 @@ export default function AdminLayoutClient({
                   e.stopPropagation();
                   setShowNotifications(!showNotifications);
                 }}
+                aria-label="Lihat notifikasi"
+                aria-expanded={showNotifications}
                 className="relative p-2 hover:bg-gray-100 rounded-lg transition-colors"
               >
                 <Bell className="w-5 h-5 text-gray-600" />
@@ -373,7 +397,7 @@ export default function AdminLayoutClient({
                       <Link
                         href="/admin/contacts"
                         onClick={() => setShowNotifications(false)}
-                        className="block w-full py-2 text-sm text-center text-amber-600 hover:text-amber-700 font-medium hover:bg-amber-50 rounded-lg transition-colors"
+                        className="block w-full py-2 text-sm text-center text-gold-600 hover:text-gold-700 font-medium hover:bg-gold-50 rounded-lg transition-colors"
                       >
                         Lihat semua notifikasi
                       </Link>
@@ -385,10 +409,20 @@ export default function AdminLayoutClient({
           </div>
         </header>
 
-        <main ref={mainRef} className="flex-1 p-4 md:p-6 overflow-auto">
+        <main
+          ref={mainRef}
+          className="flex-1 p-4 md:p-6 overflow-auto max-md:pb-[calc(var(--admin-bottom-nav-height,0px)+env(safe-area-inset-bottom,0px)+1rem)]"
+        >
           {children}
         </main>
       </div>
+
+      {/* Mobile bottom navigation bar — z-30, below drawer z-50 and modals z-50 */}
+      <BottomNav
+        items={bottomNavItems}
+        onOpenMenu={() => setIsMobileOpen(true)}
+        showContactsDot={notifications.length > 0}
+      />
 
       {/* Logout Confirmation Modal */}
       <AnimatePresence>
@@ -437,8 +471,10 @@ export default function AdminLayoutClient({
         )}
       </AnimatePresence>
     </div>
+    </AdminToastProvider>
   );
 }
+
 
 // Sidebar Content Component
 function SidebarContent({
@@ -447,18 +483,22 @@ function SidebarContent({
   onClose,
   onLogout,
   navItems,
+  drawerCloseLabel,
 }: {
   user: any;
   pathname: string;
   onClose?: () => void;
   onLogout: () => void;
   navItems: typeof allNavItems;
+  /** aria-label for the drawer close button; only rendered when onClose is provided. */
+  drawerCloseLabel?: string;
 }) {
   return (
     <div className="flex flex-col h-full">
-      <div className="p-4 border-b border-gray-800">
+      <div className="p-4 border-b border-navy-800">
+        <div className="flex items-center justify-between">
         <Link href="/admin/dashboard" className="flex items-center gap-3 group" onClick={onClose}>
-          <div className="w-10 h-10 bg-gray-800 rounded-lg flex items-center justify-center group-hover:bg-gray-700 transition-colors">
+          <div className="w-10 h-10 bg-navy-800 rounded-lg flex items-center justify-center group-hover:bg-navy-700 transition-colors">
             <span className="text-white font-bold text-base">AE</span>
           </div>
           <div>
@@ -466,6 +506,17 @@ function SidebarContent({
             <div className="text-gray-500 text-xs">Karang Taruna Armalo Eluf</div>
           </div>
         </Link>
+        {onClose && (
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label={drawerCloseLabel ?? 'Tutup menu'}
+            className="p-1.5 rounded-lg text-gray-400 hover:text-white hover:bg-navy-700 transition-colors"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        )}
+        </div>
       </div>
 
       <nav className="flex-1 py-3 overflow-y-auto">
@@ -485,11 +536,11 @@ function SidebarContent({
                   className={cn(
                     'flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all',
                     isActive
-                      ? 'bg-white text-gray-900'
-                      : 'text-gray-400 hover:bg-gray-800 hover:text-white'
+                      ? 'bg-navy-800 text-white'
+                      : 'text-gray-400 hover:bg-navy-800 hover:text-white'
                   )}
                 >
-                  <Icon className={cn('w-4 h-4 shrink-0', isActive ? 'text-gray-700' : '')} />
+                  <Icon className={cn('w-4 h-4 shrink-0', isActive ? 'text-gold-400' : '')} />
                   <span className="font-medium text-sm">{item.label}</span>
                 </Link>
               </li>
@@ -507,7 +558,7 @@ function SidebarContent({
               href="/"
               target="_blank"
               onClick={onClose}
-              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white transition-colors"
+              className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:bg-navy-800 hover:text-white transition-colors"
             >
               <ExternalLink className="w-4 h-4 shrink-0" />
               <span className="text-sm">Kunjungi Website</span>
@@ -516,9 +567,9 @@ function SidebarContent({
         </ul>
       </nav>
 
-      <div className="p-3 border-t border-gray-800">
-        <div className="flex items-center gap-2 p-2 rounded-lg bg-gray-800/50 mb-2">
-          <div className="w-8 h-8 bg-gray-700 rounded-lg flex items-center justify-center shrink-0">
+      <div className="p-3 border-t border-navy-800">
+        <div className="flex items-center gap-2 p-2 rounded-lg bg-navy-800/50 mb-2">
+          <div className="w-8 h-8 bg-navy-700 rounded-lg flex items-center justify-center shrink-0">
             <span className="text-white font-semibold text-xs">{user?.name?.[0]?.toUpperCase() || 'A'}</span>
           </div>
           <div className="flex-1 min-w-0">
