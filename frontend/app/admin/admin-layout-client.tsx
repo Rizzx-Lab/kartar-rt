@@ -299,7 +299,7 @@ export default function AdminLayoutClient({
       </aside>
 
       {/* Main Content */}
-      <div className="flex-1 md:ml-64 flex flex-col min-h-screen">
+      <div className="flex-1 md:ml-64 flex flex-col min-h-screen min-w-0">
         {/* Top Bar */}
         <header className="h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 md:px-6 sticky top-0 z-20">
           {!isMobileOpen && (
@@ -411,7 +411,7 @@ export default function AdminLayoutClient({
 
         <main
           ref={mainRef}
-          className="flex-1 p-4 md:p-6 overflow-auto max-md:pb-[calc(var(--admin-bottom-nav-height,0px)+env(safe-area-inset-bottom,0px)+1rem)]"
+          className="flex-1 min-w-0 p-4 md:p-6 overflow-auto max-md:pb-[calc(var(--admin-bottom-nav-height,0px)+env(safe-area-inset-bottom,0px)+1rem)]"
         >
           {children}
         </main>

@@ -413,14 +413,14 @@ export default function AdminGalleriesPage() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold text-navy-800">Galeri Foto</h1>
           <p className="text-gray-500 text-sm">Kelola dokumentasi foto kegiatan</p>
         </div>
         <button
           onClick={openCreateModal}
-          className="flex items-center gap-2 px-4 py-2 bg-gold-500 hover:bg-gold-600 text-navy-900 font-medium rounded-lg transition-all"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2 bg-gold-500 hover:bg-gold-600 text-navy-900 font-medium rounded-lg transition-all shrink-0 self-start sm:self-auto"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
@@ -430,26 +430,26 @@ export default function AdminGalleriesPage() {
       </div>
 
       {/* Featured Video Section */}
-      <div className="bg-white rounded-xl shadow-sm p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-gold-500/10 rounded-lg flex items-center justify-center">
+      <div className="bg-white rounded-xl shadow-sm p-4 sm:p-6">
+        <div className="flex flex-wrap items-center justify-between gap-2 mb-4">
+          <div className="flex items-center gap-3 min-w-0">
+            <div className="w-10 h-10 bg-gold-500/10 rounded-lg flex items-center justify-center shrink-0">
               <svg className="w-5 h-5 text-gold-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 10l4.553-2.069A1 1 0 0121 8.87v6.26a1 1 0 01-1.447.901L15 14M3 8a2 2 0 012-2h8a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2V8z" />
               </svg>
             </div>
-            <div>
+            <div className="min-w-0">
               <h2 className="font-semibold text-navy-800">Video Featured</h2>
               <p className="text-xs text-gray-500">Tayang otomatis selama 7 hari</p>
             </div>
           </div>
           {featuredVideo && (
-            <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full">
+            <span className="px-3 py-1 bg-green-100 text-green-700 text-xs font-medium rounded-full shrink-0">
               ● Aktif
             </span>
           )}
           {processingVideo && (
-            <span className="px-3 py-1 bg-amber-100 text-amber-700 text-xs font-medium rounded-full">
+            <span className="px-3 py-1 bg-amber-100 text-amber-700 text-xs font-medium rounded-full shrink-0">
               ● Processing
             </span>
           )}
@@ -457,8 +457,8 @@ export default function AdminGalleriesPage() {
 
         {/* Active / Processing / Empty state */}
         {loadingFeatured ? (
-          <div className="flex gap-4">
-            <div className="w-40 h-24 bg-gray-200 animate-pulse rounded-lg" />
+          <div className="flex flex-col sm:flex-row gap-4">
+            <div className="w-full sm:w-40 h-24 bg-gray-200 animate-pulse rounded-lg shrink-0" />
             <div className="flex-1 space-y-2">
               <div className="h-4 bg-gray-200 animate-pulse rounded w-1/2" />
               <div className="h-3 bg-gray-200 animate-pulse rounded w-1/3" />
@@ -466,12 +466,12 @@ export default function AdminGalleriesPage() {
           </div>
         ) : featuredVideo ? (
           <div className="space-y-4">
-            <div className="flex gap-4 items-start">
+            <div className="flex flex-col sm:flex-row gap-4 sm:items-start">
               {featuredVideo.thumbnail_url && (
                 <img
                   src={featuredVideo.thumbnail_url}
                   alt={featuredVideo.title}
-                  className="w-40 h-24 object-cover rounded-lg shrink-0"
+                  className="w-full sm:w-40 h-36 sm:h-24 object-cover rounded-lg shrink-0"
                 />
               )}
               <div className="flex-1 min-w-0">
@@ -502,7 +502,7 @@ export default function AdminGalleriesPage() {
               <button
                 onClick={() => setDeleteModal({ isOpen: true, type: 'video', id: featuredVideo.id, title: featuredVideo.title })}
                 disabled={deletingVideo}
-                className="shrink-0 px-3 py-1.5 text-sm text-red-600 border border-red-200 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                className="shrink-0 self-start sm:self-auto px-3 py-1.5 text-sm text-red-600 border border-red-200 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
               >
                 {deletingVideo ? 'Menghapus...' : 'Hapus'}
               </button>
@@ -511,8 +511,8 @@ export default function AdminGalleriesPage() {
         ) : processingVideo ? (
           /* Processing state — video is transcoding on Cloudinary */
           <div className="space-y-3">
-            <div className="flex gap-4 items-start">
-              <div className="w-40 h-24 bg-gray-100 rounded-lg shrink-0 flex items-center justify-center">
+            <div className="flex flex-col sm:flex-row gap-4 sm:items-start">
+              <div className="w-full sm:w-40 h-36 sm:h-24 bg-gray-100 rounded-lg shrink-0 flex items-center justify-center">
                 <svg className="w-8 h-8 text-gray-400 animate-spin" fill="none" viewBox="0 0 24 24">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 100 16v-4l-3 3 3 3v-4a8 8 0 01-8-8z" />
@@ -530,7 +530,7 @@ export default function AdminGalleriesPage() {
               <button
                 onClick={() => setDeleteModal({ isOpen: true, type: 'video', id: processingVideo.id, title: processingVideo.title })}
                 disabled={deletingVideo}
-                className="shrink-0 px-3 py-1.5 text-sm text-red-600 border border-red-200 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
+                className="shrink-0 self-start sm:self-auto px-3 py-1.5 text-sm text-red-600 border border-red-200 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
               >
                 {deletingVideo ? 'Menghapus...' : 'Batalkan'}
               </button>
@@ -567,7 +567,7 @@ export default function AdminGalleriesPage() {
               <label className="block text-sm font-medium text-gray-700 mb-1">
                 File Video <span className="text-red-500">*</span>
               </label>
-              <div className="flex gap-2">
+              <div className="flex flex-wrap items-center gap-2 min-w-0">
                 <input
                   type="file"
                   accept="video/mp4,video/quicktime"
@@ -578,12 +578,12 @@ export default function AdminGalleriesPage() {
                 />
                 <label
                   htmlFor="video-upload-input"
-                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg cursor-pointer text-sm transition-colors disabled:opacity-50"
+                  className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg cursor-pointer text-sm transition-colors disabled:opacity-50 shrink-0"
                 >
                   {selectedVideo ? 'Ganti Video' : 'Pilih Video'}
                 </label>
                 {selectedVideo && (
-                  <span className="flex items-center gap-1.5 text-sm text-gray-600 truncate max-w-44">
+                  <span className="flex items-center gap-1.5 text-sm text-gray-600 truncate max-w-full sm:max-w-xs min-w-0">
                     <svg className="w-4 h-4 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
                     </svg>
@@ -632,7 +632,7 @@ export default function AdminGalleriesPage() {
           )}
 
           {/* Upload button */}
-          <div className="flex items-center gap-3">
+          <div className="flex flex-wrap items-center gap-3">
             <button
               type="submit"
               disabled={uploadingVideo || !!processingVideo || !selectedVideo || !videoTitle.trim()}
@@ -664,7 +664,7 @@ export default function AdminGalleriesPage() {
                 Batal
               </button>
             )}
-            <span className="text-xs text-gray-400">MP4 / MOV · Maks 50 MB · 3 menit</span>
+            <span className="text-xs text-gray-400 break-words">MP4 / MOV · Maks 50 MB · 3 menit</span>
           </div>
         </form>
       </div>
@@ -726,7 +726,7 @@ export default function AdminGalleriesPage() {
               </div>
               {/* Content */}
               <div className="p-4">
-                <h3 className="font-semibold text-navy-800">{gallery.title}</h3>
+                <h3 className="font-semibold text-navy-800 truncate">{gallery.title}</h3>
                 <p className="text-xs text-gray-500 mb-3">
                   {new Date(gallery.created_at).toLocaleDateString('id-ID')}
                 </p>
@@ -757,7 +757,7 @@ export default function AdminGalleriesPage() {
           ))}
         </div>
       ) : (
-        <div className="bg-white rounded-xl p-12 text-center">
+        <div className="bg-white rounded-xl p-8 sm:p-12 text-center">
           <svg className="w-16 h-16 text-gray-300 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m2-2l4.586-4.586a2 2 0 012.828 0M8 12h.01M12 16l4.586-4.586a2 2 0 012.828 0M16 12h.01M8 8h.01M12 12l.01-.01M6.01 11.01L18 6.01" />
           </svg>
@@ -868,21 +868,21 @@ export default function AdminGalleriesPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50" onClick={closeViewModal} />
           <div className="relative bg-white rounded-xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden">
-            <div className="px-6 py-4 border-b flex items-center justify-between">
-              <h3 className="text-lg font-bold text-navy-800">{viewingGallery.title}</h3>
-              <button onClick={closeViewModal} className="p-2 hover:bg-gray-100 rounded-lg">
+            <div className="px-4 sm:px-6 py-4 border-b flex items-center justify-between gap-3">
+              <h3 className="text-lg font-bold text-navy-800 truncate min-w-0">{viewingGallery.title}</h3>
+              <button onClick={closeViewModal} className="p-2 hover:bg-gray-100 rounded-lg shrink-0">
                 <svg className="w-5 h-5 text-gray-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
-            <div className="p-6 overflow-y-auto max-h-[calc(90vh-140px)]" id="gallery-modal-content">
+            <div className="p-4 sm:p-6 overflow-y-auto max-h-[calc(90vh-140px)]" id="gallery-modal-content">
               {viewingGallery.description && (
-                <p className="text-gray-600 mb-4">{viewingGallery.description}</p>
+                <p className="text-gray-600 mb-4 break-words">{viewingGallery.description}</p>
               )}
               <div className="mb-4">
                 <h4 className="font-medium text-gray-800 mb-2">Upload Foto Baru</h4>
-                <div className="flex gap-2">
+                <div className="flex flex-wrap items-center gap-2">
                   <input
                     type="file"
                     multiple
@@ -909,13 +909,13 @@ export default function AdminGalleriesPage() {
                 </div>
               </div>
               {loadingPhotos ? (
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                   {[1,2,3,4].map(i => (
                     <div key={i} className="aspect-square bg-gray-200 animate-pulse rounded" />
                   ))}
                 </div>
               ) : galleryPhotos.length > 0 ? (
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                   {galleryPhotos.map((photo) => (
                     <div key={photo.id} className="relative group aspect-square">
                       <img
