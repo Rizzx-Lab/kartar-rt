@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { getGalleries, createGallery, updateGallery, deleteGallery, getGalleryPhotos, addGalleryPhotos, deleteGalleryPhoto, uploadFeaturedVideo, deleteFeaturedVideo } from '@/lib/admin-api';
 import { ConfirmModal } from '@/components/ui/confirm-modal';
+import { FeaturedVideoPreview } from '@/components/admin/featured-video-preview';
 
 interface AdminGalleryPhoto {
   id: number;
@@ -30,13 +31,13 @@ interface FeaturedVideo {
   title: string;
   video_url: string | null;
   thumbnail_url: string | null;
-  duration: number;
-  file_size: number;
+  duration?: number | null;
+  file_size?: number | null;
   is_portrait: boolean;
   status: 'processing' | 'active' | 'failed';
   expires_at: string;
-  created_at: string;
-  uploader: { id: number; name: string } | null;
+  created_at?: string;
+  uploader?: { id: number; name: string } | null;
 }
 
 // Helper function for image URL
@@ -466,39 +467,8 @@ export default function AdminGalleriesPage() {
           </div>
         ) : featuredVideo ? (
           <div className="space-y-4">
-            <div className="flex flex-col sm:flex-row gap-4 sm:items-start">
-              {featuredVideo.thumbnail_url && (
-                <img
-                  src={featuredVideo.thumbnail_url}
-                  alt={featuredVideo.title}
-                  className="w-full sm:w-40 h-36 sm:h-24 object-cover rounded-lg shrink-0"
-                />
-              )}
-              <div className="flex-1 min-w-0">
-                <h3 className="font-medium text-navy-800 truncate">{featuredVideo.title}</h3>
-                <div className="flex flex-wrap gap-3 mt-1 text-xs text-gray-500">
-                  <span className="flex items-center gap-1">
-                    <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    {Math.floor(featuredVideo.duration / 60)}:{String(featuredVideo.duration % 60).padStart(2, '0')}
-                  </span>
-                  <span>{(featuredVideo.file_size / 1024 / 1024).toFixed(1)} MB</span>
-                  {!featuredVideo.is_portrait && (
-                    <span className="flex items-center gap-1 text-amber-600">
-                      <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.83L13.732 4c-.77-.833-1.964-.833-2.732 0L4.082 16.17c-.77 1.667.192 2.83 1.732 2.83z" />
-                      </svg>
-                      Landscape
-                    </span>
-                  )}
-                  <span>
-                    Kadaluarsa: {new Date(featuredVideo.expires_at).toLocaleDateString('id-ID', {
-                      day: 'numeric', month: 'short', year: 'numeric',
-                    })}
-                  </span>
-                </div>
-              </div>
+            <div className="flex items-start justify-between gap-4">
+              <h3 className="font-medium text-navy-800 truncate">{featuredVideo.title}</h3>
               <button
                 onClick={() => setDeleteModal({ isOpen: true, type: 'video', id: featuredVideo.id, title: featuredVideo.title })}
                 disabled={deletingVideo}
@@ -507,6 +477,7 @@ export default function AdminGalleriesPage() {
                 {deletingVideo ? 'Menghapus...' : 'Hapus'}
               </button>
             </div>
+            <FeaturedVideoPreview video={featuredVideo} />
           </div>
         ) : processingVideo ? (
           /* Processing state — video is transcoding on Cloudinary */

@@ -321,6 +321,7 @@ class PublicApiController extends Controller
                 'video_url'      => $video->status === 'active' ? $video->video_url : null,
                 'thumbnail_url'  => $video->thumbnail_url,
                 'duration'       => $video->duration,
+                'file_size'      => $video->file_size,
                 'is_portrait'   => $video->is_portrait,
                 'status'        => $video->status,
                 'expires_at'    => $video->expires_at->toIso8601String(),
