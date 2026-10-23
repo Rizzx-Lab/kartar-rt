@@ -250,13 +250,8 @@ export default function AdminLayoutClient({
     // the --admin-bottom-nav-height CSS variable set on the inner div below.
     // Login and loading branches intentionally do NOT include this provider.
     <AdminToastProvider>
-      {/* CSS variable: 4rem on mobile, overridden to 0px at md+ via BottomNav's md:hidden */}
-      <div
-        className="flex h-screen bg-gray-100"
-        style={{
-          ['--admin-bottom-nav-height' as string]: '4rem',
-        } as React.CSSProperties}
-      >
+      {/* CSS variable: 4rem on mobile, overridden to 0px at md+ */}
+      <div className="flex h-screen bg-gray-100 [--admin-bottom-nav-height:4rem] md:[--admin-bottom-nav-height:0px]">
       {/* Mobile Sidebar Overlay */}
       <AnimatePresence>
         {isMobileOpen && (
